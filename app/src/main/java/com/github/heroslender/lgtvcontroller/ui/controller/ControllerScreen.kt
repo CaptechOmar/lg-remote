@@ -346,6 +346,7 @@ fun ColumnScope.Controls(
                 CIconButton(
                     iconId = R.drawable.baseline_keyboard_arrow_up_24,
                     contentDescription = stringResource(string.up_button),
+                    repeatOnHold = true,
                     enabled = hasCapability(DeviceControllerButton.UP),
                     shape = ButtonShape.copy(
                         bottomEnd = CornerSize(0.dp),
@@ -378,6 +379,7 @@ fun ColumnScope.Controls(
                 CIconButton(
                     iconId = R.drawable.baseline_keyboard_arrow_left_24,
                     contentDescription = stringResource(string.left_button),
+                    repeatOnHold = true,
                     enabled = hasCapability(DeviceControllerButton.LEFT),
                     shape = ButtonShape.copy(
                         topEnd = CornerSize(0.dp),
@@ -404,6 +406,7 @@ fun ColumnScope.Controls(
                 CIconButton(
                     iconId = R.drawable.baseline_keyboard_arrow_right_24,
                     contentDescription = stringResource(string.right_button),
+                    repeatOnHold = true,
                     shape = ButtonShape.copy(
                         topStart = CornerSize(0.dp),
                         bottomStart = CornerSize(0.dp)
@@ -437,6 +440,7 @@ fun ColumnScope.Controls(
                 CIconButton(
                     iconId = R.drawable.baseline_keyboard_arrow_down_24,
                     contentDescription = stringResource(string.down_button),
+                    repeatOnHold = true,
                     shape = ButtonShape.copy(
                         topStart = CornerSize(0.dp),
                         topEnd = CornerSize(0.dp)
@@ -464,7 +468,7 @@ fun ColumnScope.Controls(
                 horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = ControlsSpacing)
+                    .padding(top = ColorButtonTopSpacing)
                     .height(ColorButtonHeight)
             ) {
                 ColorButton(
@@ -530,6 +534,7 @@ fun RowScope.VolumeControls(
             CTextButton(
                 text = stringResource(string.volume_up_button),
                 fontSize = 6.em,
+                repeatOnHold = true,
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -542,6 +547,7 @@ fun RowScope.VolumeControls(
             CTextButton(
                 text = stringResource(string.volume_down_button),
                 fontSize = 6.em,
+                repeatOnHold = true,
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -568,6 +574,7 @@ fun RowScope.ChannelControls(
             CIconButton(
                 iconId = R.drawable.baseline_keyboard_arrow_up_24,
                 contentDescription = stringResource(string.channel_up_button),
+                repeatOnHold = true,
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -580,6 +587,7 @@ fun RowScope.ChannelControls(
             CIconButton(
                 iconId = R.drawable.baseline_keyboard_arrow_down_24,
                 contentDescription = stringResource(string.channel_down_button),
+                repeatOnHold = true,
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)

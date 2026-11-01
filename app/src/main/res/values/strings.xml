@@ -34,6 +34,11 @@
     <string name="device_list_offline">Offline</string>
     <string name="device_list_offline_wake">Offline - tap to wake up</string>
     <string name="tv_mac_address">MAC address (Wake-on-LAN)</string>
+    <string name="tv_home_button_app">Home button opens</string>
+    <string name="tv_home_button_default">TV home screen (default)</string>
+    <string name="app_picker_no_apps">No apps loaded from the TV yet. Connect to the TV, or enter an app ID below.</string>
+    <string name="app_picker_custom_id">Custom app ID</string>
+    <string name="app_picker_use_custom_id">Use</string>
     <string name="device_list_disconnected">Connect</string>
     <string name="device_list_connected">Connected</string>
     <string name="controller_device">Device</string>

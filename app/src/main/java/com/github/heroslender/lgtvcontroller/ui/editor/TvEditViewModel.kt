@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.github.heroslender.lgtvcontroller.DeviceManager
+import com.github.heroslender.lgtvcontroller.domain.model.App
 import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.storage.TvRepository
 import com.github.heroslender.lgtvcontroller.ui.BaseViewModel
@@ -33,18 +34,30 @@ class TvEditViewModel @Inject constructor(
     )
         private set
 
+    /**
+     * The tv as stored when the screen opened. The editor only changes a few of its fields, the
+     * rest (apps and inputs loaded from the tv) must be written back untouched.
+     */
+    private var loadedTv: Tv? = null
+
     init {
         viewModelScope.launch {
             val id: String = checkNotNull(savedStateHandle[NavDest.EditDevice.tvIdArg])
             val tv = tvRepository.getTvStream(id).first()
+            loadedTv = tv
             val details = TvDetails(
                 tvId = tv.id,
                 tvName = tv.name,
                 tvDisplayName = tv.displayName ?: tv.name,
                 autoConnect = tv.autoConnect,
-                macAddress = tv.macAddress ?: ""
+                macAddress = tv.macAddress ?: "",
+                homeAppId = tv.homeAppId ?: ""
             )
-            tvUiState = tvUiState.copy(tvDetails = details, isValid = validateInput(details))
+            tvUiState = tvUiState.copy(
+                tvDetails = details,
+                isValid = validateInput(details),
+                apps = tv.apps.sortedBy { it.name.lowercase() }
+            )
         }
     }
 
@@ -85,6 +98,11 @@ class TvEditViewModel @Inject constructor(
                 // Remove trailing whitespaces added sometimes with autocomplete
                 .run { copy(tvDisplayName = tvDisplayName.trim()) }
                 .toTv()
+                .let { edited ->
+                    // Keep what the editor doesn't know about, otherwise saving would erase the
+                    // apps and inputs that were loaded from the tv.
+                    loadedTv?.let { edited.copy(apps = it.apps, inputs = it.inputs) } ?: edited
+                }
 
             deviceManager.updateTv(tv)
         }
@@ -96,6 +114,7 @@ data class TvUiState(
     val displayNameValidator: InputValidator,
     val isValid: Boolean = false,
     val macAddressValidator: InputValidator = { null },
+    val apps: List<App> = emptyList(),
 )
 
 data class TvDetails(
@@ -104,6 +123,7 @@ data class TvDetails(
     val tvDisplayName: String = "",
     val autoConnect: Boolean = false,
     val macAddress: String = "",
+    val homeAppId: String = "",
 )
 
 fun TvDetails.toTv(): Tv = Tv(
@@ -111,5 +131,6 @@ fun TvDetails.toTv(): Tv = Tv(
     name = tvName,
     displayName = tvDisplayName,
     autoConnect = autoConnect,
-    macAddress = WakeOnLan.normalizeMac(macAddress)
+    macAddress = WakeOnLan.normalizeMac(macAddress),
+    homeAppId = homeAppId.trim().ifEmpty { null }
 )

@@ -13,4 +13,5 @@ data class TvEntity(
     var appList: AppList,
     var inputList: InputList,
     var macAddress: String? = null,
+    var homeAppId: String? = null,
 )

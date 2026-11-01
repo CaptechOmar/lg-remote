@@ -617,6 +617,7 @@ class DeviceManager(
             // Keep the in-memory tv in sync, otherwise the stale value would be written back
             // to the database the next time this device updates itself.
             it.tv.macAddress = tv.macAddress
+            it.tv.homeAppId = tv.homeAppId
         }
 
         val currDevice = connectedDevice.value

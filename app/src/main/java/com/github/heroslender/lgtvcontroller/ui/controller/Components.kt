@@ -1,6 +1,8 @@
 package com.github.heroslender.lgtvcontroller.ui.controller
 
 import android.content.res.Configuration
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
@@ -14,6 +16,10 @@ import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,6 +33,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.github.heroslender.lgtvcontroller.ui.theme.LGTVControllerTheme
+import kotlinx.coroutines.delay
 
 val ButtonShape = ShapeDefaults.Large
 val ControlsSpacing = 10.dp
@@ -38,9 +45,16 @@ fun CTextButton(
     enabled: Boolean = true,
     shape: Shape = ButtonShape,
     fontSize: TextUnit = 3.7.em,
+    repeatOnHold: Boolean = false,
     onClick: () -> Unit = {},
 ) {
-    CButton(enabled = enabled, shape = shape, modifier = modifier, onClick = onClick) {
+    CButton(
+        enabled = enabled,
+        shape = shape,
+        modifier = modifier,
+        repeatOnHold = repeatOnHold,
+        onClick = onClick
+    ) {
         Text(text, fontSize = fontSize)
     }
 }
@@ -53,10 +67,17 @@ fun CIconButton(
     enabled: Boolean = true,
     shape: Shape = ButtonShape,
     useDefaultTint: Boolean = false,
+    repeatOnHold: Boolean = false,
     onClick: () -> Unit = {},
 ) {
     val color = if (useDefaultTint) Color.Unspecified else null
-    CButton(enabled = enabled, shape = shape, modifier = modifier, onClick = onClick) {
+    CButton(
+        enabled = enabled,
+        shape = shape,
+        modifier = modifier,
+        repeatOnHold = repeatOnHold,
+        onClick = onClick
+    ) {
         if (color == null) {
             Icon(painterResource(iconId), contentDescription, modifier = Modifier.size(32.dp))
         } else {
@@ -78,10 +99,17 @@ fun CIconButton(
     enabled: Boolean = true,
     shape: Shape = ButtonShape,
     useDefaultTint: Boolean = false,
+    repeatOnHold: Boolean = false,
     onClick: () -> Unit = {},
 ) {
     val color = if (useDefaultTint) Color.Unspecified else null
-    CButton(enabled = enabled, shape = shape, modifier = modifier, onClick = onClick) {
+    CButton(
+        enabled = enabled,
+        shape = shape,
+        modifier = modifier,
+        repeatOnHold = repeatOnHold,
+        onClick = onClick
+    ) {
         if (color == null) {
             Icon(imageVector = imageVector, contentDescription, modifier = Modifier.size(32.dp))
         } else {
@@ -101,12 +129,39 @@ fun CButton(
     enabled: Boolean = true,
     shape: Shape = ButtonShape,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    repeatOnHold: Boolean = false,
     onClick: () -> Unit,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val currentOnClick by rememberUpdatedState(onClick)
+    // Whether the current press already fired repeats, so releasing doesn't fire one more click
+    val repeated = remember { BooleanArray(1) }
+
+    if (repeatOnHold) {
+        LaunchedEffect(isPressed) {
+            if (isPressed) {
+                repeated[0] = false
+                delay(HOLD_REPEAT_DELAY_MS)
+                repeated[0] = true
+                while (true) {
+                    currentOnClick()
+                    delay(HOLD_REPEAT_INTERVAL_MS)
+                }
+            }
+        }
+    }
 
     Button(
-        onClick = onClick,
+        onClick = {
+            if (repeated[0]) {
+                repeated[0] = false
+            } else {
+                onClick()
+            }
+        },
+        interactionSource = interactionSource,
         enabled = enabled,
         shape = shape,
         contentPadding = contentPadding,
@@ -121,7 +176,14 @@ fun CButton(
     )
 }
 
+/** How long a button has to be held before it starts repeating. */
+const val HOLD_REPEAT_DELAY_MS = 450L
+
+/** Time between repeats while a button is held. */
+const val HOLD_REPEAT_INTERVAL_MS = 120L
+
 val ColorButtonHeight = 48.dp
+val ColorButtonTopSpacing = 30.dp
 val ColorButtonRed = Color(0xFFD32F2F)
 val ColorButtonGreen = Color(0xFF388E3C)
 val ColorButtonYellow = Color(0xFFFBC02D)

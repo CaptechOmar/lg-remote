@@ -22,6 +22,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.github.heroslender.lgtvcontroller.ControllerTopAppBar
 import com.github.heroslender.lgtvcontroller.R.string
 import com.github.heroslender.lgtvcontroller.ui.ConnectedDeviceScaffold
+import com.github.heroslender.lgtvcontroller.ui.preferences.AppPreference
 import com.github.heroslender.lgtvcontroller.ui.preferences.SwitchPrefence
 import com.github.heroslender.lgtvcontroller.ui.preferences.TextPrefence
 import com.github.heroslender.lgtvcontroller.ui.theme.LGTVControllerTheme
@@ -135,6 +136,15 @@ fun TvEditBody(
             inputValidation = uiState.macAddressValidator,
             onValueChange = { newValue ->
                 onValueChange(tvDetails.copy(macAddress = newValue.trim()))
+            }
+        )
+
+        AppPreference(
+            title = stringResource(string.tv_home_button_app),
+            value = tvDetails.homeAppId,
+            apps = uiState.apps,
+            onValueChange = { newValue ->
+                onValueChange(tvDetails.copy(homeAppId = newValue))
             }
         )
     }

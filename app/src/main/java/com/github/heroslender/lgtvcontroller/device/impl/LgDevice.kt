@@ -149,7 +149,13 @@ class LgDevice(
     }
 
     override fun home() {
-        service.keyControl.home(null)
+        val appId = tv.homeAppId
+        if (appId.isNullOrBlank()) {
+            service.keyControl.home(null)
+        } else {
+            // The user remapped the Home button to open an app (e.g. a custom launcher)
+            launchApp(appId)
+        }
     }
 
     override fun info() {
