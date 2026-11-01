@@ -1,6 +1,8 @@
 package com.github.heroslender.lgtvcontroller
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
 import android.util.Log
 import com.connectsdk.device.ConnectableDevice
 import com.connectsdk.discovery.DiscoveryManager
@@ -20,6 +22,8 @@ import com.github.heroslender.lgtvcontroller.storage.TvRepository
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
 import com.github.heroslender.lgtvcontroller.utils.WakeOnLan
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -27,6 +31,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.min
 
 class DeviceManager(
     ctx: Context,
@@ -44,6 +51,7 @@ class DeviceManager(
     private val _errors = MutableSharedFlow<Snackbar>()
     val errors: Flow<Snackbar> = _errors
 
+    @Volatile
     var appStatus = AppStatus.AWAITING_FIRST_CONNECTION
         private set
 
@@ -60,6 +68,23 @@ class DeviceManager(
      * the app connects to it automatically.
      */
     private var pendingWakeTvId: String? = null
+
+    /**
+     * The id of the tv the user wants to stay connected to. While this is set, unexpected
+     * disconnects are recovered from automatically. It's cleared when the user powers the tv off,
+     * picks another tv, or when reconnecting gave up.
+     */
+    @Volatile
+    private var desiredTvId: String? = null
+
+    private var reconnectJob: Job? = null
+
+    /**
+     * Every tv seen this session, even after discovery stopped reporting it. The discovery list
+     * drops a tv roughly a minute after it stops answering, but its last known address is still
+     * the best place to try reconnecting to.
+     */
+    private val knownNetworkDevices = ConcurrentHashMap<String, LgNetworkDevice>()
 
     /**
      * Every tv the app has connected to before, including those that are currently off and
@@ -82,6 +107,9 @@ class DeviceManager(
             )
             DiscoveryManager.getInstance().addListener(this)
             DiscoveryManager.getInstance().start()
+
+            registerNetworkCallback(ctx)
+            scope.launch { heartbeatLoop() }
 
             scope.launch {
                 try {
@@ -112,19 +140,20 @@ class DeviceManager(
         }
     }
 
-    private fun getDevice(id: String): NetworkDevice? {
-        for (device in devices.value) {
-            if (device.id == id) {
-                return device
-            }
-        }
+    private fun getLgDevice(id: String): LgNetworkDevice? {
+        return (devices.value.firstOrNull { it.id == id } as? LgNetworkDevice)
+            ?: knownNetworkDevices[id]
+    }
 
-        return null
+    private fun getDevice(id: String): NetworkDevice? = getLgDevice(id)
+
+    private fun isConnectedTo(id: String): Boolean {
+        val device = _connectedDevice.value ?: return false
+        return device.id == id && device.state.value.status == DeviceStatus.CONNECTED
     }
 
     fun onDeviceConnected(device: Device) {
-        val networkDevice = getDevice(device.id) ?: return
-        networkDevice.updateStatus(DeviceStatus.CONNECTED)
+        getDevice(device.id)?.updateStatus(DeviceStatus.CONNECTED)
 
         scope.launch {
             try {
@@ -144,12 +173,34 @@ class DeviceManager(
             this.pausedTvId = device.id
         }
 
-        val networkDevice = getDevice(device.id) ?: return
-        networkDevice.updateStatus(DeviceStatus.DISCONNECTED)
+        getDevice(device.id)?.updateStatus(DeviceStatus.DISCONNECTED)
 
-        val dev = _connectedDevice.value ?: return
-        if (!dev.device.device.isConnecting) {
-            _connectedDevice.tryEmit(null)
+        // Decisions are made on the main thread, since the sdk reports from its own threads
+        scope.launch {
+            val current = _connectedDevice.value
+            if (current == null || current !== device) {
+                // Late event from an older connection of this (or another) tv, ignore it
+                return@launch
+            }
+
+            if (desiredTvId == device.id && appStatus != AppStatus.PAUSED) {
+                // Not requested by the user, so try to get the connection back
+                startReconnect(device.id)
+                return@launch
+            }
+
+            _connectedDevice.value = null
+        }
+    }
+
+    /**
+     * Called when the user deliberately ends the connection (powering the tv off), so the app
+     * doesn't fight it by reconnecting.
+     */
+    fun onUserDisconnect(tvId: String) {
+        if (desiredTvId == tvId) {
+            desiredTvId = null
+            reconnectJob?.cancel()
         }
     }
 
@@ -211,6 +262,7 @@ class DeviceManager(
                 )
 
                 _devices.tryEmit(listOf(*devices.value.toTypedArray(), networkDevice))
+                knownNetworkDevices[device.id] = networkDevice
 
                 Log.d("Device_Manager", "Device found: ${device.friendlyName}")
 
@@ -239,13 +291,40 @@ class DeviceManager(
             return
         }
 
-        val currDevice = connectedDevice.value
-        if (currDevice != null) {
-            if (currDevice.id == cDevice.id) {
-                // Already connected to this device
-                return
-            }
+        val currDevice = _connectedDevice.value
+        if (currDevice != null && currDevice.id == cDevice.id) {
+            when (currDevice.state.value.status) {
+                // Already connected (or busy connecting) to this device
+                DeviceStatus.CONNECTED,
+                DeviceStatus.CONNECTING,
+                DeviceStatus.PAIRING,
+                    -> {
+                    desiredTvId = cDevice.id
+                    return
+                }
 
+                // A dead connection, fall through and start a new one
+                DeviceStatus.DISCONNECTED -> {}
+            }
+        }
+
+        reconnectJob?.cancel()
+        desiredTvId = cDevice.id
+        knownNetworkDevices[cDevice.id] = cDevice
+        startConnection(cDevice)
+
+        scope.launch {
+            tvRepository.insertTv(Tv(id = cDevice.id, name = cDevice.friendlyName))
+        }
+    }
+
+    /**
+     * Starts a new connection to [cDevice], replacing the current one. Whether it works is
+     * reported through the [DeviceListener].
+     */
+    private fun startConnection(cDevice: LgNetworkDevice): LgDevice {
+        val currDevice = _connectedDevice.value
+        if (currDevice != null && currDevice.id != cDevice.id) {
             currDevice.disconnect()
         }
 
@@ -254,11 +333,187 @@ class DeviceManager(
         cDevice.device.connect()
 
         _connectedDevice.value = device
-        appStatus = AppStatus.RUNNING
+        if (appStatus != AppStatus.PAUSED) {
+            appStatus = AppStatus.RUNNING
+        }
         pausedTvId = null
 
-        scope.launch {
-            tvRepository.insertTv(Tv(id = device.id, name = device.friendlyName))
+        return device
+    }
+
+    /**
+     * Keeps trying to connect to the tv with the given [id] until it works, the user picks
+     * something else, the app goes to the background, or [RECONNECT_GIVE_UP_MS] has passed.
+     * Does nothing if it's already trying.
+     */
+    private fun startReconnect(id: String) {
+        if (reconnectJob?.isActive == true) {
+            return
+        }
+
+        reconnectJob = scope.launch {
+            val startedAt = System.currentTimeMillis()
+            var attempt = 0
+
+            while (desiredTvId == id && appStatus != AppStatus.PAUSED) {
+                if (System.currentTimeMillis() - startedAt > RECONNECT_GIVE_UP_MS) {
+                    giveUpReconnecting(id)
+                    return@launch
+                }
+
+                // Show that we're working on it
+                _connectedDevice.value?.takeIf { it.id == id }?.updateStatus(DeviceStatus.CONNECTING)
+
+                val target = getLgDevice(id)
+                if (target == null) {
+                    // Never seen it on this network yet, ask the network where it is
+                    rescanDiscovery()
+                } else {
+                    Log.d("Device_Manager", "Reconnect attempt ${attempt + 1} to ${target.friendlyName}")
+                    val device = startConnection(target)
+                    if (awaitConnected(device)) {
+                        Log.d("Device_Manager", "Reconnected to ${target.friendlyName}")
+                        return@launch
+                    }
+
+                    // Tear the failed attempt down properly, the sdk ignores connect() while it
+                    // still believes a service is connected.
+                    withContext(Dispatchers.IO) {
+                        runCatching { target.device.disconnect() }
+                    }
+
+                    // The tv might have a new address, so refresh discovery now and then
+                    if (attempt % 3 == 2) {
+                        rescanDiscovery()
+                    }
+                }
+
+                delay(RECONNECT_DELAYS_MS[min(attempt, RECONNECT_DELAYS_MS.lastIndex)])
+                attempt++
+            }
+        }
+    }
+
+    private suspend fun awaitConnected(device: LgDevice): Boolean {
+        val startedAt = System.currentTimeMillis()
+        while (true) {
+            if (_connectedDevice.value !== device) {
+                // Replaced by another connection in the meantime
+                return false
+            }
+
+            val waited = System.currentTimeMillis() - startedAt
+            when (device.state.value.status) {
+                DeviceStatus.CONNECTED -> return true
+                DeviceStatus.DISCONNECTED -> return false
+                DeviceStatus.CONNECTING -> if (waited > CONNECT_TIMEOUT_MS) return false
+                DeviceStatus.PAIRING -> if (waited > PAIRING_TIMEOUT_MS) return false
+            }
+
+            delay(250)
+        }
+    }
+
+    private suspend fun giveUpReconnecting(id: String) {
+        Log.w("Device_Manager", "Giving up reconnecting to $id")
+        if (desiredTvId == id) {
+            desiredTvId = null
+        }
+
+        getDevice(id)?.updateStatus(DeviceStatus.DISCONNECTED)
+        _connectedDevice.value = null
+        _errors.emit(
+            Snackbar.error(
+                "Lost connection to the TV",
+                "Couldn't reconnect. Pick the TV from the list to try again."
+            )
+        )
+    }
+
+    private fun rescanDiscovery() {
+        try {
+            for (discoveryProvider in DiscoveryManager.getInstance().discoveryProviders) {
+                discoveryProvider.rescan()
+            }
+        } catch (e: Exception) {
+            Log.e("Device_Manager", "rescan failed: ${e.message}")
+        }
+    }
+
+    /**
+     * The tv socket never notices a silently dead connection (phone woke from sleep, wifi
+     * roaming, tv crashed...) until something is sent, so regularly ask the tv for something
+     * and treat repeated silence as a dropped connection.
+     */
+    private suspend fun heartbeatLoop() {
+        var misses = 0
+        while (true) {
+            delay(HEARTBEAT_INTERVAL_MS)
+
+            val device = _connectedDevice.value
+            if (device == null
+                || appStatus == AppStatus.PAUSED
+                || reconnectJob?.isActive == true
+                || device.state.value.status != DeviceStatus.CONNECTED
+            ) {
+                misses = 0
+                continue
+            }
+
+            if (device.isResponsive(HEARTBEAT_TIMEOUT_MS)) {
+                misses = 0
+                continue
+            }
+
+            misses++
+            Log.w("Device_Manager", "TV didn't answer the heartbeat ($misses/$HEARTBEAT_MAX_MISSES)")
+            if (misses >= HEARTBEAT_MAX_MISSES) {
+                misses = 0
+                dropDeadConnection(device)
+            }
+        }
+    }
+
+    /**
+     * Closes a connection that stopped working. The resulting disconnect event is what starts
+     * the reconnect loop.
+     */
+    private suspend fun dropDeadConnection(device: LgDevice) {
+        Log.w("Device_Manager", "Dropping dead connection to ${device.friendlyName}")
+        withContext(Dispatchers.IO) {
+            runCatching { device.disconnect() }
+        }
+    }
+
+    private fun registerNetworkCallback(ctx: Context) {
+        try {
+            val connectivityManager = ctx.getSystemService(ConnectivityManager::class.java) ?: return
+            connectivityManager.registerDefaultNetworkCallback(object :
+                ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    scope.launch { onNetworkAvailable() }
+                }
+            })
+        } catch (e: Exception) {
+            Log.e("Device_Manager", "Failed to listen for network changes: ${e.message}")
+        }
+    }
+
+    /**
+     * The phone (re)joined a network, e.g. wifi came back or it switched access points.
+     */
+    private suspend fun onNetworkAvailable() {
+        val id = desiredTvId ?: return
+        if (appStatus == AppStatus.PAUSED) return
+
+        val device = _connectedDevice.value
+        if (device != null && device.id == id && device.state.value.status == DeviceStatus.CONNECTED) {
+            // The old connection may not have survived the network change
+            if (!device.isResponsive(RESUME_PROBE_TIMEOUT_MS)) {
+                dropDeadConnection(device)
+            }
+        } else {
+            startReconnect(id)
         }
     }
 
@@ -315,10 +570,22 @@ class DeviceManager(
             _errors.emit(Snackbar.info("Waking up ${tv.displayName.takeUnless { it.isNullOrEmpty() } ?: tv.name}..."))
 
             pendingWakeTvId = tv.id
+
+            if (getLgDevice(tv.id) != null) {
+                // We know where the tv lives, no need to wait for discovery to find it again
+                desiredTvId = tv.id
+                startReconnect(tv.id)
+            }
+
             repeat(WAKE_RESCAN_ATTEMPTS) {
                 delay(WAKE_RESCAN_INTERVAL_MS)
                 if (pendingWakeTvId != tv.id) {
                     // Found (and connected) in the meantime
+                    return@launch
+                }
+
+                if (isConnectedTo(tv.id)) {
+                    pendingWakeTvId = null
                     return@launch
                 }
 
@@ -329,6 +596,11 @@ class DeviceManager(
 
             if (pendingWakeTvId == tv.id) {
                 pendingWakeTvId = null
+                if (reconnectJob?.isActive == true || isConnectedTo(tv.id)) {
+                    // Still trying (or made it just now), the reconnect loop reports its own result
+                    return@launch
+                }
+
                 _errors.emit(
                     Snackbar.warning(
                         "The TV didn't show up on the network",
@@ -340,7 +612,7 @@ class DeviceManager(
     }
 
     fun updateTv(tv: Tv) {
-        devices.value.firstOrNull { it.id == tv.id }?.let {
+        getDevice(tv.id)?.let {
             it.displayName = tv.displayName
             // Keep the in-memory tv in sync, otherwise the stale value would be written back
             // to the database the next time this device updates itself.
@@ -360,33 +632,47 @@ class DeviceManager(
     fun resume() {
         appStatus = AppStatus.AWAITING_CONNECTION_AFTER_PAUSE
 
-        val connectedTvId = pausedTvId ?: return
+        // Not connected to anything before pausing, nothing to recover. Discovery plus the
+        // auto connect setting take it from here.
+        val id = desiredTvId ?: return
 
-        if (connectedDevice.value != null) {
-            Log.d("Device_Manager", "Resuming app. Already connected to a device.")
-            return
-        }
+        scope.launch {
+            val device = _connectedDevice.value
+            val status = device?.state?.value?.status
+            when {
+                device != null && device.id == id && status == DeviceStatus.CONNECTED -> {
+                    // Looks connected, but the connection may have died while we were in the
+                    // background without anyone noticing.
+                    if (!device.isResponsive(RESUME_PROBE_TIMEOUT_MS)) {
+                        dropDeadConnection(device)
+                    }
+                }
 
-        val networkDevice = getDevice(connectedTvId)
-        if (networkDevice == null) {
-            Log.d(
-                "Device_Manager",
-                "Cached device not found, running a rescan..."
-            )
-            for (discoveryProvider in DiscoveryManager.getInstance().discoveryProviders) {
-                discoveryProvider.rescan()
+                device != null && device.id == id
+                        && (status == DeviceStatus.CONNECTING || status == DeviceStatus.PAIRING)
+                    -> Log.d("Device_Manager", "Resuming app. Already connecting to the device.")
+
+                else -> startReconnect(id)
             }
-            return
         }
-        networkDevice.connect()
-        this.pausedTvId = null
     }
 
     fun pause() {
         appStatus = AppStatus.PAUSED
+        // No point retrying in the background, the system cuts our network access anyway.
+        // resume() starts over.
+        reconnectJob?.cancel()
     }
 
     private companion object {
+        const val RECONNECT_GIVE_UP_MS = 3 * 60 * 1000L
+        val RECONNECT_DELAYS_MS = longArrayOf(1000L, 2000L, 3000L, 5000L)
+        const val CONNECT_TIMEOUT_MS = 10_000L
+        const val PAIRING_TIMEOUT_MS = 90_000L
+        const val HEARTBEAT_INTERVAL_MS = 8_000L
+        const val HEARTBEAT_TIMEOUT_MS = 4_000L
+        const val HEARTBEAT_MAX_MISSES = 2
+        const val RESUME_PROBE_TIMEOUT_MS = 2_500L
         const val WAKE_CONNECT_DELAY_MS = 3000L
         const val WAKE_RESCAN_INTERVAL_MS = 5000L
         const val WAKE_RESCAN_ATTEMPTS = 12

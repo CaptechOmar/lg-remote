@@ -9,6 +9,7 @@ import com.connectsdk.service.capability.ExternalInputControl
 import com.connectsdk.service.capability.KeyControl
 import com.connectsdk.service.capability.Launcher
 import com.connectsdk.service.capability.TextInputControl
+import com.connectsdk.service.capability.VolumeControl
 import com.connectsdk.service.command.ServiceCommandError
 import com.github.heroslender.lgtvcontroller.DeviceManager
 import com.github.heroslender.lgtvcontroller.device.Device
@@ -27,6 +28,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -64,8 +67,36 @@ class LgDevice(
     }
 
     override fun powerOff() {
+        // Deliberate, so the app must not try to reconnect
+        manager.onUserDisconnect(id)
         service.powerOff(null)
         disconnect()
+    }
+
+    /**
+     * Asks the tv for its volume and waits for any answer. Silence for [timeoutMs] means the
+     * connection is dead, even though the sdk may still report it as connected.
+     */
+    suspend fun isResponsive(timeoutMs: Long): Boolean {
+        return try {
+            withTimeoutOrNull(timeoutMs) {
+                suspendCancellableCoroutine<Boolean> { cont ->
+                    service.getVolume(object : VolumeControl.VolumeListener {
+                        override fun onSuccess(volume: Float) {
+                            if (cont.isActive) cont.resume(true)
+                        }
+
+                        // An error is still an answer, the tv is reachable
+                        override fun onError(error: ServiceCommandError) {
+                            if (cont.isActive) cont.resume(true)
+                        }
+                    })
+                }
+            } ?: false
+        } catch (e: Exception) {
+            Log.w("LgDevice", "Heartbeat failed: ${e.message}")
+            false
+        }
     }
 
     override fun volumeUp() {
