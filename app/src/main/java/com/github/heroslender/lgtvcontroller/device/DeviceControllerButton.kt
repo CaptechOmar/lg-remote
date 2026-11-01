@@ -19,4 +19,8 @@ enum class DeviceControllerButton {
     SOURCE,
     MENU,
     QMENU,
+    RED,
+    GREEN,
+    YELLOW,
+    BLUE,
 }

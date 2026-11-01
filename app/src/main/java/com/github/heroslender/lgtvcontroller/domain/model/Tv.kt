@@ -7,4 +7,6 @@ data class Tv(
     var autoConnect: Boolean = false,
     var apps: List<App> = emptyList(),
     var inputs: List<Input> = emptyList(),
+    /** MAC address used to wake the TV with Wake-on-LAN, in `AA:BB:CC:DD:EE:FF` form. */
+    var macAddress: String? = null,
 )

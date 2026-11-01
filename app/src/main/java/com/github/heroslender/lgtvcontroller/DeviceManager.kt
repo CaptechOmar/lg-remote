@@ -18,6 +18,7 @@ import com.github.heroslender.lgtvcontroller.device.impl.LgNetworkDevice
 import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.storage.TvRepository
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
+import com.github.heroslender.lgtvcontroller.utils.WakeOnLan
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +54,18 @@ class DeviceManager(
      * app returns to the foreground.
      */
     private var pausedTvId: String? = null
+
+    /**
+     * The id of a tv that was just sent a Wake-on-LAN packet. Once it shows up on the network,
+     * the app connects to it automatically.
+     */
+    private var pendingWakeTvId: String? = null
+
+    /**
+     * Every tv the app has connected to before, including those that are currently off and
+     * therefore not discovered on the network.
+     */
+    val savedTvs: Flow<List<Tv>> = tvRepository.getAllTvsStream()
 
     init {
         try {
@@ -201,6 +214,15 @@ class DeviceManager(
 
                 Log.d("Device_Manager", "Device found: ${device.friendlyName}")
 
+                if (pendingWakeTvId == device.id) {
+                    // The tv we just woke up is now on the network, connect to it. The tv's
+                    // services need a moment to be ready after it announces itself.
+                    pendingWakeTvId = null
+                    delay(WAKE_CONNECT_DELAY_MS)
+                    connect(networkDevice)
+                    return@launch
+                }
+
                 autoConnect(networkDevice)
             } catch (e: Exception) {
                 Log.e("Device_Manager", "Failed to handle device found: ${e.message}")
@@ -263,8 +285,67 @@ class DeviceManager(
         }
     }
 
+    /**
+     * Wakes up a tv that is off by sending it a Wake-on-LAN packet, then waits for it to show
+     * up on the network and connects to it.
+     */
+    fun wakeTv(tv: Tv) {
+        val mac = tv.macAddress
+        if (mac.isNullOrBlank()) {
+            scope.launch {
+                _errors.emit(
+                    Snackbar.error(
+                        "Can't wake up the TV",
+                        "Set the TV's MAC address in its settings first"
+                    )
+                )
+            }
+            return
+        }
+
+        scope.launch {
+            try {
+                WakeOnLan.send(mac)
+            } catch (e: Exception) {
+                Log.e("Device_Manager", "Failed to send Wake-on-LAN packet: ${e.message}")
+                _errors.emit(Snackbar.error("Failed to wake up the TV", e.message))
+                return@launch
+            }
+
+            _errors.emit(Snackbar.info("Waking up ${tv.displayName.takeUnless { it.isNullOrEmpty() } ?: tv.name}..."))
+
+            pendingWakeTvId = tv.id
+            repeat(WAKE_RESCAN_ATTEMPTS) {
+                delay(WAKE_RESCAN_INTERVAL_MS)
+                if (pendingWakeTvId != tv.id) {
+                    // Found (and connected) in the meantime
+                    return@launch
+                }
+
+                for (discoveryProvider in DiscoveryManager.getInstance().discoveryProviders) {
+                    discoveryProvider.rescan()
+                }
+            }
+
+            if (pendingWakeTvId == tv.id) {
+                pendingWakeTvId = null
+                _errors.emit(
+                    Snackbar.warning(
+                        "The TV didn't show up on the network",
+                        "Check that Wake-on-LAN is enabled on the TV and that the MAC address is correct"
+                    )
+                )
+            }
+        }
+    }
+
     fun updateTv(tv: Tv) {
-        devices.value.first { it.id == tv.id }.displayName = tv.displayName
+        devices.value.firstOrNull { it.id == tv.id }?.let {
+            it.displayName = tv.displayName
+            // Keep the in-memory tv in sync, otherwise the stale value would be written back
+            // to the database the next time this device updates itself.
+            it.tv.macAddress = tv.macAddress
+        }
 
         val currDevice = connectedDevice.value
         if (currDevice != null && currDevice.id == tv.id) {
@@ -303,5 +384,11 @@ class DeviceManager(
 
     fun pause() {
         appStatus = AppStatus.PAUSED
+    }
+
+    private companion object {
+        const val WAKE_CONNECT_DELAY_MS = 3000L
+        const val WAKE_RESCAN_INTERVAL_MS = 5000L
+        const val WAKE_RESCAN_ATTEMPTS = 12
     }
 }

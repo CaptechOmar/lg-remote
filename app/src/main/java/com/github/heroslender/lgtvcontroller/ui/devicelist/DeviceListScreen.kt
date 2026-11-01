@@ -286,10 +286,16 @@ fun DeviceItem(
 
     CButton(
         onClick = {
-            if (status == DeviceStatus.DISCONNECTED) {
+            if (!deviceData.isPoweredOn) {
+                // Offline TV: `connect` sends the Wake-on-LAN packet. The app connects and
+                // navigates to the controller by itself once the TV is back on the network.
                 deviceData.connect()
+            } else {
+                if (status == DeviceStatus.DISCONNECTED) {
+                    deviceData.connect()
+                }
+                navigateToController()
             }
-            navigateToController()
         },
         modifier = Modifier
             .fillMaxWidth()
@@ -312,7 +318,7 @@ fun DeviceItem(
             Column(modifier = Modifier.padding(start = 15.dp)) {
                 Text(deviceData.displayName)
                 val subText = if (!deviceData.isPoweredOn)
-                    stringResource(string.device_list_offline)
+                    stringResource(string.device_list_offline_wake)
                 else if (status == DeviceStatus.DISCONNECTED)
                     stringResource(string.device_list_disconnected)
                 else

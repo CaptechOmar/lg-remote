@@ -128,5 +128,14 @@ fun TvEditBody(
                 onValueChange(tvDetails.copy(autoConnect = newValue))
             }
         )
+
+        TextPrefence(
+            title = stringResource(string.tv_mac_address),
+            value = tvDetails.macAddress,
+            inputValidation = uiState.macAddressValidator,
+            onValueChange = { newValue ->
+                onValueChange(tvDetails.copy(macAddress = newValue.trim()))
+            }
+        )
     }
 }

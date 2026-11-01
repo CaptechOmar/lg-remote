@@ -12,6 +12,7 @@ import com.github.heroslender.lgtvcontroller.storage.TvRepository
 import com.github.heroslender.lgtvcontroller.ui.BaseViewModel
 import com.github.heroslender.lgtvcontroller.ui.navigation.NavDest
 import com.github.heroslender.lgtvcontroller.ui.preferences.InputValidator
+import com.github.heroslender.lgtvcontroller.utils.WakeOnLan
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -26,7 +27,8 @@ class TvEditViewModel @Inject constructor(
     var tvUiState by mutableStateOf(
         TvUiState(
             tvDetails = TvDetails(tvId = "Loading...", tvName = "Loading..."),
-            displayNameValidator = this::validateDisplayName
+            displayNameValidator = this::validateDisplayName,
+            macAddressValidator = this::validateMacAddress
         )
     )
         private set
@@ -39,7 +41,8 @@ class TvEditViewModel @Inject constructor(
                 tvId = tv.id,
                 tvName = tv.name,
                 tvDisplayName = tv.displayName ?: tv.name,
-                autoConnect = tv.autoConnect
+                autoConnect = tv.autoConnect,
+                macAddress = tv.macAddress ?: ""
             )
             tvUiState = tvUiState.copy(tvDetails = details, isValid = validateInput(details))
         }
@@ -56,7 +59,16 @@ class TvEditViewModel @Inject constructor(
     }
 
     fun validateInput(uiState: TvDetails = tvUiState.tvDetails): Boolean {
-        return uiState.tvId != "Loading..."
+        return uiState.tvId != "Loading..." && validateMacAddress(uiState.macAddress) == null
+    }
+
+    fun validateMacAddress(macAddress: String): String? {
+        // The MAC address is optional, it's only needed for Wake-on-LAN
+        return if (macAddress.isBlank() || WakeOnLan.normalizeMac(macAddress) != null) {
+            null
+        } else {
+            "Invalid MAC address, expected format: AA:BB:CC:DD:EE:FF"
+        }
     }
 
     fun validateDisplayName(displayName: String): String? {
@@ -83,6 +95,7 @@ data class TvUiState(
     val tvDetails: TvDetails = TvDetails(),
     val displayNameValidator: InputValidator,
     val isValid: Boolean = false,
+    val macAddressValidator: InputValidator = { null },
 )
 
 data class TvDetails(
@@ -90,11 +103,13 @@ data class TvDetails(
     val tvName: String = "",
     val tvDisplayName: String = "",
     val autoConnect: Boolean = false,
+    val macAddress: String = "",
 )
 
 fun TvDetails.toTv(): Tv = Tv(
     id = tvId,
     name = tvName,
     displayName = tvDisplayName,
-    autoConnect = autoConnect
+    autoConnect = autoConnect,
+    macAddress = WakeOnLan.normalizeMac(macAddress)
 )

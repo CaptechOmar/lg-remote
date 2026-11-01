@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -117,6 +119,37 @@ fun CButton(
         modifier = modifier,
         content = content
     )
+}
+
+val ColorButtonHeight = 48.dp
+val ColorButtonRed = Color(0xFFD32F2F)
+val ColorButtonGreen = Color(0xFF388E3C)
+val ColorButtonYellow = Color(0xFFFBC02D)
+val ColorButtonBlue = Color(0xFF1976D2)
+
+/**
+ * One of the four colored shortcut keys (red, green, yellow, blue) found on TV remotes.
+ */
+@Composable
+fun ColorButton(
+    color: Color,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit = {},
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = ButtonShape,
+        colors = ButtonColors(
+            containerColor = color,
+            contentColor = Color.Unspecified,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        modifier = modifier.semantics { this.contentDescription = contentDescription },
+    ) {}
 }
 
 @Composable

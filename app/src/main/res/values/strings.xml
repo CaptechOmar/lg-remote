@@ -20,6 +20,10 @@
     <string name="channel_up_button">Channel Up</string>
     <string name="channel_down_button">Channel Down</string>
     <string name="source_button">Source</string>
+    <string name="red_button">Red</string>
+    <string name="green_button">Green</string>
+    <string name="yellow_button">Yellow</string>
+    <string name="blue_button">Blue</string>
     <string name="save_action">Save</string>
     <string name="edit_tv_title">Edit TV</string>
     <string name="tv_id">ID</string>
@@ -28,6 +32,8 @@
     <string name="searching_devices">Searching for devices</string>
     <string name="check_network">Make sure you\'re connected to the same network</string>
     <string name="device_list_offline">Offline</string>
+    <string name="device_list_offline_wake">Offline - tap to wake up</string>
+    <string name="tv_mac_address">MAC address (Wake-on-LAN)</string>
     <string name="device_list_disconnected">Connect</string>
     <string name="device_list_connected">Connected</string>
     <string name="controller_device">Device</string>

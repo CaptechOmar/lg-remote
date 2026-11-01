@@ -13,6 +13,7 @@ fun TvEntity.toDomain(): Tv {
         autoConnect = autoConnect,
         apps = appList.apps,
         inputs = inputList.apps,
+        macAddress = macAddress,
     )
 }
 
@@ -23,6 +24,7 @@ fun Tv.toEntity(): TvEntity {
         displayName = displayName,
         autoConnect = autoConnect,
         appList = AppList(apps),
-        inputList = InputList(inputs)
+        inputList = InputList(inputs),
+        macAddress = macAddress,
     )
 }

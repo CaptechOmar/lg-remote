@@ -137,6 +137,22 @@ class LgDevice(
         service.sendSpecialKey("QMENU")
     }
 
+    override fun red() {
+        service.sendSpecialKey("RED")
+    }
+
+    override fun green() {
+        service.sendSpecialKey("GREEN")
+    }
+
+    override fun yellow() {
+        service.sendSpecialKey("YELLOW")
+    }
+
+    override fun blue() {
+        service.sendSpecialKey("BLUE")
+    }
+
     override fun launchNetflix() = launchApp("netflix")
 
     override fun launchApp(appId: String) {

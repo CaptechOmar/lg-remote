@@ -460,6 +460,57 @@ fun ColumnScope.Controls(
                     executeButton(DeviceControllerButton.EXIT)
                 }
             }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = ControlsSpacing)
+                    .height(ColorButtonHeight)
+            ) {
+                ColorButton(
+                    color = ColorButtonRed,
+                    contentDescription = stringResource(string.red_button),
+                    enabled = hasCapability(DeviceControllerButton.RED),
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxHeight(),
+                ) {
+                    executeButton(DeviceControllerButton.RED)
+                }
+
+                ColorButton(
+                    color = ColorButtonGreen,
+                    contentDescription = stringResource(string.green_button),
+                    enabled = hasCapability(DeviceControllerButton.GREEN),
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxHeight(),
+                ) {
+                    executeButton(DeviceControllerButton.GREEN)
+                }
+
+                ColorButton(
+                    color = ColorButtonYellow,
+                    contentDescription = stringResource(string.yellow_button),
+                    enabled = hasCapability(DeviceControllerButton.YELLOW),
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxHeight(),
+                ) {
+                    executeButton(DeviceControllerButton.YELLOW)
+                }
+
+                ColorButton(
+                    color = ColorButtonBlue,
+                    contentDescription = stringResource(string.blue_button),
+                    enabled = hasCapability(DeviceControllerButton.BLUE),
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxHeight(),
+                ) {
+                    executeButton(DeviceControllerButton.BLUE)
+                }
+            }
         }
     }
 }

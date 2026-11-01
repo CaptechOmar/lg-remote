@@ -47,6 +47,10 @@ object PreviewDevice : Device {
     override fun source() {}
     override fun menu() {}
     override fun qmenu() {}
+    override fun red() {}
+    override fun green() {}
+    override fun yellow() {}
+    override fun blue() {}
     override fun mouseClick() {}
     override fun moveMouse(x: Double, y: Double) {}
     override fun scroll(x: Double, y: Double) {}

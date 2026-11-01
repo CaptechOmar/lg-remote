@@ -12,4 +12,5 @@ data class TvEntity(
     var autoConnect: Boolean,
     var appList: AppList,
     var inputList: InputList,
+    var macAddress: String? = null,
 )

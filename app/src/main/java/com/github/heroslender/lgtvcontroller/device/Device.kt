@@ -46,6 +46,11 @@ interface Device {
             DeviceControllerButton.SOURCE -> return hasCapability(ExternalInputControl.Any)
             DeviceControllerButton.MENU -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.QMENU -> return hasCapability(KeyControl.Any)
+            DeviceControllerButton.RED,
+            DeviceControllerButton.GREEN,
+            DeviceControllerButton.YELLOW,
+            DeviceControllerButton.BLUE,
+                -> return hasCapability(KeyControl.Any)
         }
     }
 
@@ -71,6 +76,10 @@ interface Device {
             DeviceControllerButton.SOURCE -> source()
             DeviceControllerButton.MENU -> menu()
             DeviceControllerButton.QMENU -> qmenu()
+            DeviceControllerButton.RED -> red()
+            DeviceControllerButton.GREEN -> green()
+            DeviceControllerButton.YELLOW -> yellow()
+            DeviceControllerButton.BLUE -> blue()
         }
     }
 
@@ -109,6 +118,14 @@ interface Device {
     fun menu()
 
     fun qmenu()
+
+    fun red()
+
+    fun green()
+
+    fun yellow()
+
+    fun blue()
 
     fun launchNetflix()
 
