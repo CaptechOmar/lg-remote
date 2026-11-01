@@ -1,8 +1,15 @@
 name: Release APK
 
-# Publishes a GitHub release with an installable APK whenever a version tag (v*) is pushed,
-# e.g. `git tag v0.6.0 && git push origin v0.6.0`.
+# Publishes a GitHub release with an installable APK, and creates the version tag for it.
+# Start it from the Actions tab: Release APK > Run workflow > enter a version such as v0.6.0.
+# Pushing a v* tag does the same.
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to publish, e.g. v0.6.0"
+        required: true
+        default: "v0.6.0"
   push:
     tags:
       - "v*"
@@ -35,9 +42,10 @@ jobs:
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ github.event.inputs.version || github.ref_name }}
         run: |
           cp app/build/outputs/apk/debug/*.apk "lg-remote-${TAG}.apk"
           gh release create "$TAG" "lg-remote-${TAG}.apk" \
             --title "LG Remote ${TAG}" \
+            --target "$GITHUB_SHA" \
             --notes-file .github/release-notes.md
