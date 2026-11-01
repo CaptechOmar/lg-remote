@@ -41,6 +41,7 @@ object PreviewDevice : Device {
     override fun right() {}
     override fun ok() {}
     override fun okLongPress() {}
+    override fun okLongPressEnd() {}
     override fun back() {}
     override fun exit() {}
     override fun home() {}

@@ -397,6 +397,7 @@ fun ColumnScope.Controls(
                     shape = CutCornerShape(0.dp),
                     enabled = hasCapability(DeviceControllerButton.OK),
                     onLongClick = { executeButton(DeviceControllerButton.OK_LONG_PRESS) },
+                    onLongClickRelease = { executeButton(DeviceControllerButton.OK_LONG_PRESS_END) },
                     modifier = Modifier
                         .aspectRatio(1F, true)
                         .weight(1F),

@@ -14,6 +14,7 @@ import com.connectsdk.service.command.ServiceCommandError
 import com.github.heroslender.lgtvcontroller.DeviceManager
 import com.github.heroslender.lgtvcontroller.device.Device
 import com.github.heroslender.lgtvcontroller.device.DeviceControllerButton
+import com.github.heroslender.lgtvcontroller.device.OK_LONG_PRESS_HOLD
 import com.github.heroslender.lgtvcontroller.device.DeviceState
 import com.github.heroslender.lgtvcontroller.device.DeviceStatus
 import com.github.heroslender.lgtvcontroller.domain.model.App
@@ -21,6 +22,7 @@ import com.github.heroslender.lgtvcontroller.domain.model.Input
 import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
 import com.github.heroslender.lgtvcontroller.utils.sendSpecialKey
+import com.github.heroslender.lgtvcontroller.utils.setPointerButtonDown
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -142,6 +144,20 @@ class LgDevice(
     }
 
     override fun okLongPress() {
+        if (tv.okLongPressAction == OK_LONG_PRESS_HOLD) {
+            if (!service.setPointerButtonDown(true)) {
+                scope.launch {
+                    _errors.emit(
+                        Snackbar.error(
+                            "Can't hold OK",
+                            "This version of the TV library doesn't support holding the pointer button"
+                        )
+                    )
+                }
+            }
+            return
+        }
+
         val action = tv.okLongPressAction
             ?.let { name -> DeviceControllerButton.entries.firstOrNull { it.name == name } }
 
@@ -150,6 +166,12 @@ class LgDevice(
             ok()
         } else {
             executeControllerButton(action)
+        }
+    }
+
+    override fun okLongPressEnd() {
+        if (tv.okLongPressAction == OK_LONG_PRESS_HOLD) {
+            service.setPointerButtonDown(false)
         }
     }
 

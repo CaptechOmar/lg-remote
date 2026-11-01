@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.github.heroslender.lgtvcontroller.ui.theme.LGTVControllerTheme
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 
 val ButtonShape = ShapeDefaults.Large
@@ -49,6 +50,7 @@ fun CTextButton(
     fontSize: TextUnit = 3.7.em,
     repeatOnHold: Boolean = false,
     onLongClick: (() -> Unit)? = null,
+    onLongClickRelease: (() -> Unit)? = null,
     onClick: () -> Unit = {},
 ) {
     CButton(
@@ -57,6 +59,7 @@ fun CTextButton(
         modifier = modifier,
         repeatOnHold = repeatOnHold,
         onLongClick = onLongClick,
+        onLongClickRelease = onLongClickRelease,
         onClick = onClick
     ) {
         Text(text, fontSize = fontSize)
@@ -135,6 +138,7 @@ fun CButton(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     repeatOnHold: Boolean = false,
     onLongClick: (() -> Unit)? = null,
+    onLongClickRelease: (() -> Unit)? = null,
     onClick: () -> Unit,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -144,6 +148,7 @@ fun CButton(
     // Whether the current press already fired repeats, so releasing doesn't fire one more click
     val repeated = remember { BooleanArray(1) }
     val currentOnLongClick by rememberUpdatedState(onLongClick)
+    val currentOnLongClickRelease by rememberUpdatedState(onLongClickRelease)
     val haptics = LocalHapticFeedback.current
 
     if (repeatOnHold) {
@@ -170,6 +175,13 @@ fun CButton(
                 repeated[0] = true
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 currentOnLongClick?.invoke()
+
+                // Stay here until the finger lifts (isPressed changes, which cancels this effect)
+                try {
+                    awaitCancellation()
+                } finally {
+                    currentOnLongClickRelease?.invoke()
+                }
             }
         }
     }

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.github.heroslender.lgtvcontroller.ControllerTopAppBar
 import com.github.heroslender.lgtvcontroller.R.string
+import com.github.heroslender.lgtvcontroller.device.OK_LONG_PRESS_HOLD
 import com.github.heroslender.lgtvcontroller.ui.ConnectedDeviceScaffold
 import com.github.heroslender.lgtvcontroller.ui.preferences.AppPreference
 import com.github.heroslender.lgtvcontroller.ui.preferences.ChoicePreference
@@ -176,4 +177,5 @@ private val OkLongPressOptions = listOf(
     "GREEN" to "Green",
     "YELLOW" to "Yellow",
     "BLUE" to "Blue",
+    OK_LONG_PRESS_HOLD to "Hold the pointer button (experimental)",
 )
