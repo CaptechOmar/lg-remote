@@ -15,6 +15,7 @@ fun TvEntity.toDomain(): Tv {
         inputs = inputList.apps,
         macAddress = macAddress,
         homeAppId = homeAppId,
+        okLongPressAction = okLongPressAction,
     )
 }
 
@@ -28,5 +29,6 @@ fun Tv.toEntity(): TvEntity {
         inputList = InputList(inputs),
         macAddress = macAddress,
         homeAppId = homeAppId,
+        okLongPressAction = okLongPressAction,
     )
 }

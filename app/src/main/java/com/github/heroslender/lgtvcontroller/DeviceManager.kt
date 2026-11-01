@@ -618,6 +618,7 @@ class DeviceManager(
             // to the database the next time this device updates itself.
             it.tv.macAddress = tv.macAddress
             it.tv.homeAppId = tv.homeAppId
+            it.tv.okLongPressAction = tv.okLongPressAction
         }
 
         val currDevice = connectedDevice.value

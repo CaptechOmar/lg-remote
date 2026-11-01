@@ -11,4 +11,6 @@ data class Tv(
     var macAddress: String? = null,
     /** App launched by the Home button instead of the TV's home screen, null for the default. */
     var homeAppId: String? = null,
+    /** Name of the [com.github.heroslender.lgtvcontroller.device.DeviceControllerButton] sent when OK is long-pressed, null for a normal OK. */
+    var okLongPressAction: String? = null,
 )

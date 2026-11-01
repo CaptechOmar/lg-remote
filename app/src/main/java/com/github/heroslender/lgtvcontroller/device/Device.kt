@@ -36,7 +36,9 @@ interface Device {
             DeviceControllerButton.DOWN -> return hasCapability(KeyControl.Down)
             DeviceControllerButton.LEFT -> return hasCapability(KeyControl.Left)
             DeviceControllerButton.RIGHT -> return hasCapability(KeyControl.Right)
-            DeviceControllerButton.OK -> return hasCapability(KeyControl.OK)
+            DeviceControllerButton.OK,
+            DeviceControllerButton.OK_LONG_PRESS,
+                -> return hasCapability(KeyControl.OK)
             DeviceControllerButton.BACK,
             DeviceControllerButton.EXIT,
                 -> return hasCapability(KeyControl.Back)
@@ -69,6 +71,7 @@ interface Device {
             DeviceControllerButton.LEFT -> left()
             DeviceControllerButton.RIGHT -> right()
             DeviceControllerButton.OK -> ok()
+            DeviceControllerButton.OK_LONG_PRESS -> okLongPress()
             DeviceControllerButton.BACK -> back()
             DeviceControllerButton.EXIT -> exit()
             DeviceControllerButton.HOME -> home()
@@ -104,6 +107,9 @@ interface Device {
     fun right()
 
     fun ok()
+
+    /** Long press on OK: runs the action the user picked in the TV settings, or a normal OK. */
+    fun okLongPress()
 
     fun back()
 

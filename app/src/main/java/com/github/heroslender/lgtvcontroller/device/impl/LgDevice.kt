@@ -13,6 +13,7 @@ import com.connectsdk.service.capability.VolumeControl
 import com.connectsdk.service.command.ServiceCommandError
 import com.github.heroslender.lgtvcontroller.DeviceManager
 import com.github.heroslender.lgtvcontroller.device.Device
+import com.github.heroslender.lgtvcontroller.device.DeviceControllerButton
 import com.github.heroslender.lgtvcontroller.device.DeviceState
 import com.github.heroslender.lgtvcontroller.device.DeviceStatus
 import com.github.heroslender.lgtvcontroller.domain.model.App
@@ -138,6 +139,18 @@ class LgDevice(
     override fun ok() {
         service.keyControl.sendKeyCode(KeyControl.KeyCode.ENTER, null)
 //        service.keyControl.ok(null)
+    }
+
+    override fun okLongPress() {
+        val action = tv.okLongPressAction
+            ?.let { name -> DeviceControllerButton.entries.firstOrNull { it.name == name } }
+
+        if (action == null || action == DeviceControllerButton.OK_LONG_PRESS) {
+            // Nothing mapped, behave like a normal press
+            ok()
+        } else {
+            executeControllerButton(action)
+        }
     }
 
     override fun back() {

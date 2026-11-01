@@ -12,6 +12,7 @@ enum class DeviceControllerButton {
     LEFT,
     RIGHT,
     OK,
+    OK_LONG_PRESS,
     BACK,
     EXIT,
     HOME,

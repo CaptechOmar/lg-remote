@@ -40,6 +40,7 @@ object PreviewDevice : Device {
     override fun left() {}
     override fun right() {}
     override fun ok() {}
+    override fun okLongPress() {}
     override fun back() {}
     override fun exit() {}
     override fun home() {}

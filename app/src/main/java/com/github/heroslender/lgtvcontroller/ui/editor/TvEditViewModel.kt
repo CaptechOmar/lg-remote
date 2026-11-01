@@ -51,7 +51,8 @@ class TvEditViewModel @Inject constructor(
                 tvDisplayName = tv.displayName ?: tv.name,
                 autoConnect = tv.autoConnect,
                 macAddress = tv.macAddress ?: "",
-                homeAppId = tv.homeAppId ?: ""
+                homeAppId = tv.homeAppId ?: "",
+                okLongPressAction = tv.okLongPressAction ?: ""
             )
             tvUiState = tvUiState.copy(
                 tvDetails = details,
@@ -124,6 +125,7 @@ data class TvDetails(
     val autoConnect: Boolean = false,
     val macAddress: String = "",
     val homeAppId: String = "",
+    val okLongPressAction: String = "",
 )
 
 fun TvDetails.toTv(): Tv = Tv(
@@ -132,5 +134,6 @@ fun TvDetails.toTv(): Tv = Tv(
     displayName = tvDisplayName,
     autoConnect = autoConnect,
     macAddress = WakeOnLan.normalizeMac(macAddress),
-    homeAppId = homeAppId.trim().ifEmpty { null }
+    homeAppId = homeAppId.trim().ifEmpty { null },
+    okLongPressAction = okLongPressAction.trim().ifEmpty { null }
 )

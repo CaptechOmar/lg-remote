@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -46,6 +48,7 @@ fun CTextButton(
     shape: Shape = ButtonShape,
     fontSize: TextUnit = 3.7.em,
     repeatOnHold: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit = {},
 ) {
     CButton(
@@ -53,6 +56,7 @@ fun CTextButton(
         shape = shape,
         modifier = modifier,
         repeatOnHold = repeatOnHold,
+        onLongClick = onLongClick,
         onClick = onClick
     ) {
         Text(text, fontSize = fontSize)
@@ -130,6 +134,7 @@ fun CButton(
     shape: Shape = ButtonShape,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     repeatOnHold: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -138,6 +143,8 @@ fun CButton(
     val currentOnClick by rememberUpdatedState(onClick)
     // Whether the current press already fired repeats, so releasing doesn't fire one more click
     val repeated = remember { BooleanArray(1) }
+    val currentOnLongClick by rememberUpdatedState(onLongClick)
+    val haptics = LocalHapticFeedback.current
 
     if (repeatOnHold) {
         LaunchedEffect(isPressed) {
@@ -149,6 +156,20 @@ fun CButton(
                     currentOnClick()
                     delay(HOLD_REPEAT_INTERVAL_MS)
                 }
+            }
+        }
+    }
+
+    // A long press runs [onLongClick] once instead of the normal click. It shares the `repeated`
+    // flag with repeatOnHold (they're not meant to be combined) so the release doesn't also click.
+    if (onLongClick != null) {
+        LaunchedEffect(isPressed) {
+            if (isPressed) {
+                repeated[0] = false
+                delay(LONG_PRESS_DELAY_MS)
+                repeated[0] = true
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                currentOnLongClick?.invoke()
             }
         }
     }
@@ -178,6 +199,9 @@ fun CButton(
 
 /** How long a button has to be held before it starts repeating. */
 const val HOLD_REPEAT_DELAY_MS = 450L
+
+/** How long a button has to be held to count as a long press. */
+const val LONG_PRESS_DELAY_MS = 500L
 
 /** Time between repeats while a button is held. */
 const val HOLD_REPEAT_INTERVAL_MS = 120L

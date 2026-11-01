@@ -23,6 +23,7 @@ import com.github.heroslender.lgtvcontroller.ControllerTopAppBar
 import com.github.heroslender.lgtvcontroller.R.string
 import com.github.heroslender.lgtvcontroller.ui.ConnectedDeviceScaffold
 import com.github.heroslender.lgtvcontroller.ui.preferences.AppPreference
+import com.github.heroslender.lgtvcontroller.ui.preferences.ChoicePreference
 import com.github.heroslender.lgtvcontroller.ui.preferences.SwitchPrefence
 import com.github.heroslender.lgtvcontroller.ui.preferences.TextPrefence
 import com.github.heroslender.lgtvcontroller.ui.theme.LGTVControllerTheme
@@ -147,5 +148,32 @@ fun TvEditBody(
                 onValueChange(tvDetails.copy(homeAppId = newValue))
             }
         )
+
+        ChoicePreference(
+            title = stringResource(string.tv_ok_long_press),
+            value = tvDetails.okLongPressAction,
+            options = OkLongPressOptions,
+            onValueChange = { newValue ->
+                onValueChange(tvDetails.copy(okLongPressAction = newValue))
+            }
+        )
     }
 }
+
+/**
+ * What a long press on OK can do. The TV can't be sent a "held" key, so a long press sends a
+ * different key instead. The first value is the name of a DeviceControllerButton.
+ */
+private val OkLongPressOptions = listOf(
+    "" to "Normal OK (default)",
+    "MENU" to "Menu",
+    "INFO" to "Info",
+    "QMENU" to "Quick settings",
+    "BACK" to "Back",
+    "EXIT" to "Exit",
+    "HOME" to "Home",
+    "RED" to "Red",
+    "GREEN" to "Green",
+    "YELLOW" to "Yellow",
+    "BLUE" to "Blue",
+)
