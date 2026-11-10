@@ -16,35 +16,43 @@ android {
         minSdk = 30
         targetSdk = 34
 
-        versionCode = 14
+        // CI builds count up with the run number so every build (stable or beta) can be installed
+        // over the previous one.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.let { 1000 + it } ?: 14
         versionName = "0.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // An optional fixed key for the beta app, so one beta can be installed over the previous one.
-    // Without the key file, beta builds are signed with the temporary debug key instead.
-    val betaKeystore = file("beta-test.keystore")
+    // CI signs every build with one permanent key (kept in GitHub secrets, never in the repo), so
+    // each build installs as an update over the previous one. Without the key (local builds) the
+    // temporary debug key is used.
+    val ciKeystore = System.getenv("LGREMOTE_KEYSTORE")?.let { file(it) }?.takeIf { it.exists() }
 
     signingConfigs {
-        if (betaKeystore.exists()) {
-            create("beta") {
-                storeFile = betaKeystore
-                storePassword = "lgremotebeta"
-                keyAlias = "beta"
-                keyPassword = "lgremotebeta"
+        if (ciKeystore != null) {
+            create("ci") {
+                storeFile = ciKeystore
+                storePassword = System.getenv("LGREMOTE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("LGREMOTE_KEY_ALIAS")
+                keyPassword = System.getenv("LGREMOTE_KEY_PASSWORD")
             }
         }
     }
 
     buildTypes {
-        // Installs next to the stable app (own package name, name and data) to try new things
+        debug {
+            if (ciKeystore != null) {
+                signingConfig = signingConfigs.getByName("ci")
+            }
+        }
+
+        // Same app as the stable one (same package and key), so installing it updates the app.
         create("beta") {
             initWith(getByName("debug"))
-            applicationIdSuffix = ".beta"
             versionNameSuffix = "-beta"
-            if (betaKeystore.exists()) {
-                signingConfig = signingConfigs.getByName("beta")
+            if (ciKeystore != null) {
+                signingConfig = signingConfigs.getByName("ci")
             }
         }
 
@@ -132,13 +140,6 @@ protobuf {
 
 
 androidComponents {
-    // Every beta build needs a higher version code than the last to install over it. The CI run
-    // number only ever goes up.
-    onVariants(selector().withBuildType("beta")) { variant ->
-        val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0
-        variant.outputs.forEach { output -> output.versionCode.set(2000 + runNumber) }
-    }
-
     onVariants(selector().all()) { variant ->
         afterEvaluate {
             val variantName = variant.name.capitalize()

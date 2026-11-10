@@ -23,6 +23,20 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Set up the signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.LGREMOTE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/lgremote.keystore"
+            echo "LGREMOTE_KEYSTORE=$RUNNER_TEMP/lgremote.keystore" >> "$GITHUB_ENV"
+            echo "LGREMOTE_KEYSTORE_PASSWORD=${{ secrets.LGREMOTE_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "LGREMOTE_KEY_ALIAS=${{ secrets.LGREMOTE_KEY_ALIAS }}" >> "$GITHUB_ENV"
+            echo "LGREMOTE_KEY_PASSWORD=${{ secrets.LGREMOTE_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+          else
+            echo "No signing key configured, using the temporary debug key"
+          fi
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
 
