@@ -22,14 +22,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // An optional fixed key for the beta app, so one beta can be installed over the previous one.
+    // Without the key file, beta builds are signed with the temporary debug key instead.
+    val betaKeystore = file("beta-test.keystore")
+
     signingConfigs {
-        // A fixed key for the beta app, so one beta can be installed over the previous one.
-        // This key is public on purpose and only signs the beta app, never the stable one.
-        create("beta") {
-            storeFile = file("beta-test.keystore")
-            storePassword = "lgremotebeta"
-            keyAlias = "beta"
-            keyPassword = "lgremotebeta"
+        if (betaKeystore.exists()) {
+            create("beta") {
+                storeFile = betaKeystore
+                storePassword = "lgremotebeta"
+                keyAlias = "beta"
+                keyPassword = "lgremotebeta"
+            }
         }
     }
 
@@ -39,7 +43,9 @@ android {
             initWith(getByName("debug"))
             applicationIdSuffix = ".beta"
             versionNameSuffix = "-beta"
-            signingConfig = signingConfigs.getByName("beta")
+            if (betaKeystore.exists()) {
+                signingConfig = signingConfigs.getByName("beta")
+            }
         }
 
         release {

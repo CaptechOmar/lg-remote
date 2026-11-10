@@ -1,4 +1,4 @@
-**Beta build.** Installs next to the stable app as "LG Remote Beta" (a separate app with its own settings), so you don't need to uninstall anything. Later betas install over this one.
+**Beta build.** Installs next to the stable app as "LG Remote Beta" (a separate app with its own settings), so you don't need to uninstall anything. Betas are signed with a temporary key, so to install a newer beta, uninstall the older beta first (the stable app is not affected).
 
 ### What's new in this beta
 - **Direct connection**: the app remembers each TV's address and checks it directly, instead of waiting for a network search to find the TV. The TV should show up and connect right away after opening the app, and after Wake-on-LAN.
