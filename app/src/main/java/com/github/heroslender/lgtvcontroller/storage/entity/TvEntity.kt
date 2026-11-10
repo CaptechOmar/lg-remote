@@ -15,4 +15,6 @@ data class TvEntity(
     var macAddress: String? = null,
     var homeAppId: String? = null,
     var okLongPressAction: String? = null,
+    var ipAddress: String? = null,
+    var serviceUuid: String? = null,
 )

@@ -13,4 +13,8 @@ data class Tv(
     var homeAppId: String? = null,
     /** Name of the [com.github.heroslender.lgtvcontroller.device.DeviceControllerButton] sent when OK is long-pressed, null for a normal OK. */
     var okLongPressAction: String? = null,
+    /** Last known IPv4 address of the TV, used to reach it without waiting for discovery. */
+    var ipAddress: String? = null,
+    /** UUID the TV announced itself with, needed to rebuild the device without discovery. */
+    var serviceUuid: String? = null,
 )

@@ -141,6 +141,15 @@ fun TvEditBody(
             }
         )
 
+        TextPrefence(
+            title = "IP address",
+            value = tvDetails.ipAddress,
+            inputValidation = uiState.ipAddressValidator,
+            onValueChange = { newValue ->
+                onValueChange(tvDetails.copy(ipAddress = newValue.trim()))
+            }
+        )
+
         AppPreference(
             title = stringResource(string.tv_home_button_app),
             value = tvDetails.homeAppId,
