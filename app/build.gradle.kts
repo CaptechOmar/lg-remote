@@ -22,7 +22,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // A fixed key for the beta app, so one beta can be installed over the previous one.
+        // This key is public on purpose and only signs the beta app, never the stable one.
+        create("beta") {
+            storeFile = file("beta-test.keystore")
+            storePassword = "lgremotebeta"
+            keyAlias = "beta"
+            keyPassword = "lgremotebeta"
+        }
+    }
+
     buildTypes {
+        // Installs next to the stable app (own package name, name and data) to try new things
+        create("beta") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".beta"
+            versionNameSuffix = "-beta"
+            signingConfig = signingConfigs.getByName("beta")
+        }
+
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -107,6 +126,13 @@ protobuf {
 
 
 androidComponents {
+    // Every beta build needs a higher version code than the last to install over it. The CI run
+    // number only ever goes up.
+    onVariants(selector().withBuildType("beta")) { variant ->
+        val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0
+        variant.outputs.forEach { output -> output.versionCode.set(2000 + runNumber) }
+    }
+
     onVariants(selector().all()) { variant ->
         afterEvaluate {
             val variantName = variant.name.capitalize()
