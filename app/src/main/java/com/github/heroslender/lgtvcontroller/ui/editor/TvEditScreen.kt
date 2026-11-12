@@ -1,6 +1,11 @@
 package com.github.heroslender.lgtvcontroller.ui.editor
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalContext
+import com.github.heroslender.lgtvcontroller.utils.AppLog
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -102,6 +107,7 @@ fun TvEditBody(
     modifier: Modifier = Modifier,
 ) {
     val tvDetails = uiState.tvDetails
+    val context = LocalContext.current
     Column(modifier = modifier.padding(15.dp, 10.dp)) {
         TextPrefence(
             title = "ID",
@@ -167,6 +173,22 @@ fun TvEditBody(
                 onValueChange(tvDetails.copy(okLongPressAction = newValue))
             }
         )
+
+        OutlinedButton(
+            onClick = {
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "LG Remote connection log")
+                    putExtra(Intent.EXTRA_TEXT, AppLog.dump())
+                }
+                context.startActivity(Intent.createChooser(send, "Share connection log"))
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+        ) {
+            Text("Share connection log")
+        }
     }
 }
 

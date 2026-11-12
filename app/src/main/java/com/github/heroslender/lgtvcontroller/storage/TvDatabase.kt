@@ -10,12 +10,19 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.github.heroslender.lgtvcontroller.storage.entity.TvEntity
 
 @TypeConverters(value = [RoomTypeConverters::class])
-@Database(entities = [TvEntity::class], version = 8, exportSchema = false)
+@Database(entities = [TvEntity::class], version = 9, exportSchema = false)
 abstract class TvDatabase: RoomDatabase() {
 
     companion object {
         @Volatile
         private var Instance: TvDatabase? = null
+
+        /** Adds the key the TV gave us when pairing. */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tvs ADD COLUMN clientKey TEXT")
+            }
+        }
 
         /** Adds the TV's last known address and UUID, used to connect without discovery. */
         private val MIGRATION_7_8 = object : Migration(7, 8) {
@@ -49,7 +56,7 @@ abstract class TvDatabase: RoomDatabase() {
         fun getDatabase(context: Context): TvDatabase {
             return Instance ?: synchronized(this) {
                 Room.databaseBuilder(context, TvDatabase::class.java, "tv_database")
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .fallbackToDestructiveMigration(false)
                     .build()
                     .also { Instance = it }

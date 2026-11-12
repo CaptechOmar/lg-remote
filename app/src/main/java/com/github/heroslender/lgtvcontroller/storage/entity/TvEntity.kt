@@ -17,4 +17,5 @@ data class TvEntity(
     var okLongPressAction: String? = null,
     var ipAddress: String? = null,
     var serviceUuid: String? = null,
+    var clientKey: String? = null,
 )

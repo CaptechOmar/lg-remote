@@ -1,6 +1,6 @@
 package com.github.heroslender.lgtvcontroller.device.impl
 
-import android.util.Log
+import com.github.heroslender.lgtvcontroller.utils.AppLog
 import com.connectsdk.core.AppInfo
 import com.connectsdk.core.ExternalInputInfo
 import com.connectsdk.core.TextInputStatusInfo
@@ -97,7 +97,7 @@ class LgDevice(
                 }
             } ?: false
         } catch (e: Exception) {
-            Log.w("LgDevice", "Heartbeat failed: ${e.message}")
+            AppLog.w("LgDevice", "Heartbeat failed: ${e.message}")
             false
         }
     }
@@ -423,7 +423,7 @@ class LgDevice(
         } catch (e: Exception) {
             tv.inputs = emptyList()
             _state.update { it.copy(inputs = emptyList()) }
-            Log.e("LgDevice", "Failed to load inputs: ${e.message}")
+            AppLog.e("LgDevice", "Failed to load inputs: ${e.message}")
             _errors.emit(Snackbar.error("Failed to load inputs", e.message))
         }
 
@@ -434,7 +434,7 @@ class LgDevice(
         } catch (e: Exception) {
             tv.apps = emptyList()
             _state.update { it.copy(apps = emptyList()) }
-            Log.e("LgDevice", "Failed to load apps: ${e.message}")
+            AppLog.e("LgDevice", "Failed to load apps: ${e.message}")
             _errors.emit(Snackbar.error("Failed to load apps", e.message))
         }
 
@@ -443,14 +443,14 @@ class LgDevice(
         try {
             subscribeRunningApp()
         } catch (e: Exception) {
-            Log.e("LgDevice", "Failed to subscribe to running app: ${e.message}")
+            AppLog.e("LgDevice", "Failed to subscribe to running app: ${e.message}")
             _errors.emit(Snackbar.error("Failed to subscribe to running app", e.message))
         }
 
         try {
             subscribeTextInputListener()
         } catch (e: Exception) {
-            Log.e("LgDevice", "Failed to subscribe to text input: ${e.message}")
+            AppLog.e("LgDevice", "Failed to subscribe to text input: ${e.message}")
             _errors.emit(Snackbar.error("Failed to subscribe to text input", e.message))
         }
     }

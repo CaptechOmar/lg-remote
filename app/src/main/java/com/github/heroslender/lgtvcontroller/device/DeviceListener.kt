@@ -1,6 +1,6 @@
 package com.github.heroslender.lgtvcontroller.device
 
-import android.util.Log
+import com.github.heroslender.lgtvcontroller.utils.AppLog
 import com.connectsdk.device.ConnectableDevice
 import com.connectsdk.device.ConnectableDeviceListener
 import com.connectsdk.service.DeviceService
@@ -15,11 +15,11 @@ class DeviceListener(
     override fun onDeviceReady(d: ConnectableDevice) {
         device.updateStatus(DeviceStatus.CONNECTED)
         manager.onDeviceConnected(device)
-        Log.d("Device", "listDevices :::: onDeviceReady")
+        AppLog.d("Device", "listDevices :::: onDeviceReady")
     }
 
     override fun onDeviceDisconnected(d: ConnectableDevice) {
-        Log.d("Device", "listDevices :::: onDeviceDisconnected")
+        AppLog.d("Device", "listDevices :::: onDeviceDisconnected")
         d.removeListener(this)
         manager.onDeviceDisconnected(device)
         device.updateStatus(DeviceStatus.DISCONNECTED)
@@ -30,7 +30,7 @@ class DeviceListener(
         service: DeviceService,
         pairingType: DeviceService.PairingType
     ) {
-        Log.d("Device", "listDevices :::: onPairingRequired")
+        AppLog.d("Device", "listDevices :::: onPairingRequired")
         manager.onDevicePairing(device)
         device.updateStatus(DeviceStatus.PAIRING)
     }
@@ -40,14 +40,14 @@ class DeviceListener(
         added: MutableList<String>,
         removed: MutableList<String>
     ) {
-        Log.d("Device", "listDevices :::: onCapabilityUpdated")
+        AppLog.d("Device", "listDevices :::: onCapabilityUpdated")
     }
 
     override fun onConnectionFailed(
         d: ConnectableDevice,
         error: ServiceCommandError
     ) {
-        Log.e("Device", "Connection failed: ${error.message}")
+        AppLog.e("Device", "Connection failed: ${error.message}")
         d.removeListener(this)
         device.updateStatus(DeviceStatus.DISCONNECTED)
         manager.onDeviceDisconnected(device)

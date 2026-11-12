@@ -17,4 +17,6 @@ data class Tv(
     var ipAddress: String? = null,
     /** UUID the TV announced itself with, needed to rebuild the device without discovery. */
     var serviceUuid: String? = null,
+    /** Key the TV gave us when it was paired, lets us reconnect without asking again. */
+    var clientKey: String? = null,
 )

@@ -18,6 +18,7 @@ fun TvEntity.toDomain(): Tv {
         okLongPressAction = okLongPressAction,
         ipAddress = ipAddress,
         serviceUuid = serviceUuid,
+        clientKey = clientKey,
     )
 }
 
@@ -34,5 +35,6 @@ fun Tv.toEntity(): TvEntity {
         okLongPressAction = okLongPressAction,
         ipAddress = ipAddress,
         serviceUuid = serviceUuid,
+        clientKey = clientKey,
     )
 }
