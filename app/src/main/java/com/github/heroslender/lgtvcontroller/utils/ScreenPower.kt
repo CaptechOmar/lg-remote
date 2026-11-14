@@ -4,6 +4,7 @@ import com.connectsdk.service.WebOSTVService
 import com.connectsdk.service.capability.listeners.ResponseListener
 import com.connectsdk.service.command.ServiceCommand
 import com.connectsdk.service.command.ServiceCommandError
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -87,4 +88,40 @@ fun WebOSTVService.setScreenPower(on: Boolean, onResult: (ServiceCommandError?) 
     }
 
     attempt(0)
+}
+
+/**
+ * Calls one of the TV's internal (luna) services, which the websocket doesn't expose directly. The
+ * way in is the alert API: an alert is created whose buttons/close action is the luna call, and
+ * closing it makes the TV run that call. The TV's answer isn't available this way.
+ *
+ * @param uri the service address without the `luna://` prefix.
+ */
+fun WebOSTVService.lunaRequest(
+    uri: String,
+    params: JSONObject,
+    onResult: (ServiceCommandError?) -> Unit,
+) {
+    val luna = "luna://$uri"
+    fun action() = JSONObject().put("uri", luna).put("params", params)
+
+    val payload = JSONObject()
+        .put("message", " ")
+        .put("buttons", JSONArray().put(JSONObject().put("label", "").put("onClick", luna).put("params", params)))
+        .put("onclose", action())
+        .put("onfail", action())
+
+    sendRequestForResult("ssap://system.notifications/createAlert", payload) { error, response ->
+        val alertId = (response as? JSONObject)?.optString("alertId")
+        if (error != null) {
+            onResult(error)
+        } else if (alertId.isNullOrEmpty()) {
+            onResult(ServiceCommandError(0, "The TV didn't create the alert", response))
+        } else {
+            sendRequestForResult(
+                "ssap://system.notifications/closeAlert",
+                JSONObject().put("alertId", alertId),
+            ) { closeError, _ -> onResult(closeError) }
+        }
+    }
 }

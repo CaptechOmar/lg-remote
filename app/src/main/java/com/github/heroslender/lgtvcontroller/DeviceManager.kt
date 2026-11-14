@@ -426,6 +426,26 @@ class DeviceManager(
         val ip = tv.ipAddress?.takeIf { it.isNotBlank() } ?: return null
         val uuid = tv.serviceUuid?.takeIf { it.isNotBlank() } ?: return null
 
+        // Discovery may have found the tv a moment ago, with its real data. Adding the bare saved
+        // data on top of that would replace it and break connecting, so use what the sdk has.
+        val sdkDevice = try {
+            DiscoveryManager.getInstance().allDevices.values
+                .firstOrNull { it.id == tv.id || it.ipAddress == ip }
+        } catch (_: Exception) {
+            null
+        }
+        if (sdkDevice != null) {
+            AppLog.d("Device_Manager", "Saved tv is already known to discovery")
+            if (getLgDevice(tv.id) == null) {
+                deviceFound(sdkDevice)
+            }
+            repeat(25) {
+                getLgDevice(tv.id)?.let { return it }
+                delay(200)
+            }
+            return null
+        }
+
         try {
             val provider = DiscoveryManager.getInstance().discoveryProviders.firstOrNull() ?: return null
             val description = ServiceDescription(WEBOS_SERVICE_FILTER, uuid, ip).apply {
@@ -662,6 +682,12 @@ class DeviceManager(
                     if (awaitConnected(device)) {
                         AppLog.d("Device_Manager", "Reconnected to ${target.friendlyName}")
                         return@launch
+                    }
+
+                    // Failing again and again right away means the sdk has incomplete data about
+                    // the tv, so have discovery deliver the real one before the next attempt
+                    if (attempt >= 2 && injectedTvIds.contains(id)) {
+                        awaitingRealDescription.add(id)
                     }
 
                     // Tear the failed attempt down properly, the sdk ignores connect() while it

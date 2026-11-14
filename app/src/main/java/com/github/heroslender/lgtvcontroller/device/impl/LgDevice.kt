@@ -21,6 +21,7 @@ import com.github.heroslender.lgtvcontroller.domain.model.App
 import com.github.heroslender.lgtvcontroller.domain.model.Input
 import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
+import com.github.heroslender.lgtvcontroller.utils.lunaRequest
 import com.github.heroslender.lgtvcontroller.utils.sendRequest
 import com.github.heroslender.lgtvcontroller.utils.sendRequestAny
 import com.github.heroslender.lgtvcontroller.utils.sendSpecialKey
@@ -272,12 +273,19 @@ class LgDevice(
         val payload = JSONObject()
             .put("category", "picture")
             .put("settings", JSONObject().put("backlight", value))
-        service.sendRequestAny(SETTINGS_SET, payload) { error, _ ->
-            if (error != null) {
-                backlight = null
-                AppLog.e("LgDevice", "Couldn't set the brightness: ${error.message}")
-                scope.launch {
-                    _errors.emit(Snackbar.error("Couldn't change the brightness", error.message))
+        // Newer webOS versions don't accept the settings call over the websocket ("no such
+        // service or method"), but the internal settings service can be reached through an alert.
+        service.lunaRequest("com.webos.settingsservice/setSystemSettings", payload) { lunaError ->
+            if (lunaError == null) return@lunaRequest
+
+            AppLog.w("LgDevice", "Settings via luna failed (${lunaError.message}), trying the direct call")
+            service.sendRequestAny(SETTINGS_SET, payload) { error, _ ->
+                if (error != null) {
+                    backlight = null
+                    AppLog.e("LgDevice", "Couldn't set the brightness: ${error.message}")
+                    scope.launch {
+                        _errors.emit(Snackbar.error("Couldn't change the brightness", error.message))
+                    }
                 }
             }
         }
