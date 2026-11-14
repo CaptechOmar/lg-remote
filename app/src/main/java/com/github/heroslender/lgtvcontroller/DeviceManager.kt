@@ -88,6 +88,13 @@ class DeviceManager(
     @Volatile
     private var lastForcedDiscoveryMs = 0L
 
+    @Volatile
+    private var lastGiveUpMs = 0L
+
+    /** The tv the user switched off from the app, which must not be reconnected to on its own. */
+    @Volatile
+    private var userStoppedTvId: String? = null
+
     /**
      * Every tv seen this session, even after discovery stopped reporting it. The discovery list
      * drops a tv roughly a minute after it stops answering, but its last known address is still
@@ -260,6 +267,7 @@ class DeviceManager(
      * doesn't fight it by reconnecting.
      */
     fun onUserDisconnect(tvId: String) {
+        userStoppedTvId = tvId
         if (desiredTvId == tvId) {
             desiredTvId = null
             reconnectJob?.cancel()
@@ -499,6 +507,23 @@ class DeviceManager(
                         if (devices.value.none { it.id == tv.id }) {
                             injectSavedTv(tv)
                         }
+
+                        // The last used tv is reachable but there is no connection (it was off or
+                        // restarting, or the reconnect gave up): connect again without being asked.
+                        if (tv.id == lastTvId()
+                            && desiredTvId == null
+                            && userStoppedTvId != tv.id
+                            && _connectedDevice.value == null
+                            && reconnectJob?.isActive != true
+                            && System.currentTimeMillis() - lastGiveUpMs > REGAIN_AFTER_GIVE_UP_MS
+                        ) {
+                            val device = getLgDevice(tv.id) ?: injectSavedTv(tv)
+                            if (device != null) {
+                                awaitRealDescription(tv.id)
+                                AppLog.d("Device_Manager", "TV is reachable again, reconnecting")
+                                connect(device)
+                            }
+                        }
                     } else if (injectedTvIds.contains(tv.id)) {
                         val failures = (probeFailures[tv.id] ?: 0) + 1
                         probeFailures[tv.id] = failures
@@ -539,6 +564,7 @@ class DeviceManager(
         }
 
         AppLog.d("Device_Manager", "connect(${cDevice.friendlyName}) at ${cDevice.device.ipAddress}")
+        userStoppedTvId = null
         reconnectJob?.cancel()
         desiredTvId = cDevice.id
         lastTvIdState.value = cDevice.id
@@ -670,12 +696,9 @@ class DeviceManager(
 
         getDevice(id)?.updateStatus(DeviceStatus.DISCONNECTED)
         _connectedDevice.value = null
-        _errors.emit(
-            Snackbar.error(
-                "Lost connection to the TV",
-                "Couldn't reconnect. Pick the TV from the list to try again."
-            )
-        )
+        lastGiveUpMs = System.currentTimeMillis()
+        // No popup: the remote shows the tv as disconnected, and the presence check below
+        // reconnects by itself as soon as the tv is reachable again.
     }
 
     private fun rescanDiscovery() {
@@ -811,6 +834,7 @@ class DeviceManager(
             return
         }
 
+        userStoppedTvId = null
         scope.launch {
             try {
                 WakeOnLan.send(mac)
@@ -989,6 +1013,7 @@ class DeviceManager(
         const val FORCE_DISCOVERY_AFTER_MS = 1_200L
         const val FORCE_DISCOVERY_MIN_GAP_MS = 8_000L
         const val LAST_TV_KEY = "last_tv_id"
+        const val REGAIN_AFTER_GIVE_UP_MS = 15_000L
         const val PAIRING_TIMEOUT_MS = 90_000L
         const val HEARTBEAT_INTERVAL_MS = 8_000L
         const val HEARTBEAT_TIMEOUT_MS = 4_000L
