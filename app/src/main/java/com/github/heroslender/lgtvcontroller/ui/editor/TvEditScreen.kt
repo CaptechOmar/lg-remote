@@ -94,6 +94,11 @@ fun TvEditScreen(
         TvEditBody(
             uiState = tvEditViewModel.tvUiState,
             onValueChange = tvEditViewModel::updateUiState,
+            modesAvailable = tvEditViewModel.modesAvailable,
+            pictureMode = tvEditViewModel.pictureMode,
+            soundMode = tvEditViewModel.soundMode,
+            onPictureMode = tvEditViewModel::changePictureMode,
+            onSoundMode = tvEditViewModel::changeSoundMode,
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
         )
@@ -105,6 +110,11 @@ fun TvEditBody(
     uiState: TvUiState,
     onValueChange: (TvDetails) -> Unit,
     modifier: Modifier = Modifier,
+    modesAvailable: Boolean = false,
+    pictureMode: String? = null,
+    soundMode: String? = null,
+    onPictureMode: (String) -> Unit = {},
+    onSoundMode: (String) -> Unit = {},
 ) {
     val tvDetails = uiState.tvDetails
     val context = LocalContext.current
@@ -183,6 +193,23 @@ fun TvEditBody(
             }
         )
 
+        if (modesAvailable) {
+            // These change the TV right away, they are not saved in the app
+            ChoicePreference(
+                title = "Picture mode",
+                value = pictureMode ?: "",
+                options = PictureModes,
+                onValueChange = onPictureMode,
+            )
+
+            ChoicePreference(
+                title = "Sound mode",
+                value = soundMode ?: "",
+                options = SoundModes,
+                onValueChange = onSoundMode,
+            )
+        }
+
         OutlinedButton(
             onClick = {
                 val send = Intent(Intent.ACTION_SEND).apply {
@@ -200,6 +227,29 @@ fun TvEditBody(
         }
     }
 }
+
+/** Picture modes of recent LG TVs (the TV doesn't list them). Pairs of (webOS value, label). */
+private val PictureModes = listOf(
+    "vivid" to "Vivid",
+    "standard" to "Standard",
+    "eco" to "Eco",
+    "cinema" to "Cinema",
+    "expert1" to "Expert (Bright Room)",
+    "expert2" to "Expert (Dark Room)",
+    "game" to "Game Optimizer",
+    "filmMaker" to "Filmmaker Mode",
+    "sports" to "Sports",
+)
+
+private val SoundModes = listOf(
+    "standard" to "Standard",
+    "movie" to "Movie",
+    "music" to "Music",
+    "sports" to "Sports",
+    "game" to "Game",
+    "news" to "News",
+    "aiSoundPlus" to "AI Sound+",
+)
 
 /**
  * What a long press on OK can do. The TV can't be sent a "held" key, so a long press sends a

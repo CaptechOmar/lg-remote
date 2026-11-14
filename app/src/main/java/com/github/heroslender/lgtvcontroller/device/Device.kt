@@ -96,6 +96,14 @@ interface Device {
         }
     }
 
+    /** Reads a TV system setting (e.g. picture/pictureMode), null if it couldn't be read. */
+    fun readSetting(category: String, key: String, onResult: (String?) -> Unit) {
+        onResult(null)
+    }
+
+    /** Changes a TV system setting (e.g. picture/pictureMode). */
+    fun changeSetting(category: String, key: String, value: String) {}
+
     fun powerOff()
 
     fun volumeUp()

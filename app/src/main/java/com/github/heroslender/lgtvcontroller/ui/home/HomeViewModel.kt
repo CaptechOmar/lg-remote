@@ -35,6 +35,7 @@ class HomeViewModel @Inject constructor(
                         deviceName = if (deviceState.displayName.isNullOrEmpty()) device.friendlyName else deviceState.displayName,
                         deviceStatus = deviceState.status,
                         runningApp = deviceState.runningApp,
+                        volume = deviceState.volume,
                         apps = deviceState.apps,
                         inputs = deviceState.inputs,
                         hasCapability = device::hasCapability,

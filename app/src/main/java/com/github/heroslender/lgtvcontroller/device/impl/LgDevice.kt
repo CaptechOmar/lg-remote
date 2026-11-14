@@ -268,6 +268,7 @@ class LgDevice(
 
     private fun setBacklight(value: Int) {
         backlight = value
+        _state.update { it.copy(brightness = value) }
         backlightReadAt = System.currentTimeMillis()
 
         val payload = JSONObject()
@@ -293,6 +294,35 @@ class LgDevice(
 
     @Volatile
     private var screenOff = false
+
+    override fun readSetting(category: String, key: String, onResult: (String?) -> Unit) {
+        val payload = JSONObject()
+            .put("category", category)
+            .put("keys", JSONArray().put(key))
+        service.sendRequestAny(SETTINGS_GET, payload) { error, response ->
+            val value = (response as? JSONObject)?.optJSONObject("settings")?.opt(key)?.toString()
+            if (error != null || value == null) {
+                AppLog.w("LgDevice", "Couldn't read $category/$key: ${error?.message ?: response}")
+                onResult(null)
+            } else {
+                onResult(value)
+            }
+        }
+    }
+
+    override fun changeSetting(category: String, key: String, value: String) {
+        val payload = JSONObject()
+            .put("category", category)
+            .put("settings", JSONObject().put(key, value))
+        service.lunaRequest("com.webos.settingsservice/setSystemSettings", payload) { error ->
+            if (error != null) {
+                AppLog.e("LgDevice", "Couldn't set $category/$key: ${error.message}")
+                scope.launch {
+                    _errors.emit(Snackbar.error("Couldn't change the setting", error.message))
+                }
+            }
+        }
+    }
 
     override fun toggleScreen() {
         val turnOn = screenOff
@@ -553,6 +583,18 @@ class LgDevice(
         } catch (e: Exception) {
             AppLog.e("LgDevice", "Failed to subscribe to running app: ${e.message}")
             _errors.emit(Snackbar.error("Failed to subscribe to running app", e.message))
+        }
+
+        try {
+            service.subscribeVolume(object : VolumeControl.VolumeListener {
+                override fun onSuccess(volume: Float) {
+                    _state.update { it.copy(volume = volume.toInt()) }
+                }
+
+                override fun onError(error: ServiceCommandError) {}
+            })
+        } catch (e: Exception) {
+            AppLog.w("LgDevice", "Failed to subscribe to volume: ${e.message}")
         }
 
         try {

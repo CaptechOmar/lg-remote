@@ -11,4 +11,7 @@ data class DeviceState(
     val inputs: List<Input>,
     val isKeyboardOpen: Boolean,
     val brightnessControls: Boolean = false,
+    /** Last known TV volume and backlight (0-100), null when not known yet. */
+    val volume: Int? = null,
+    val brightness: Int? = null,
 )

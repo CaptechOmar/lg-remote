@@ -45,6 +45,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -206,6 +209,7 @@ fun HomeScreen(
                 hasCapability = uiState.hasCapability,
                 executeButton = uiState.executeButton,
                 navigateToController = navigateToController,
+                volume = uiState.volume,
             )
 
             AppsCard(
@@ -236,6 +240,7 @@ fun ControllerShortcutsCard(
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
     navigateToController: () -> Unit,
+    volume: Int? = null,
 ) {
     ContentCard(
         iconVector = MyIconPack.TvRemote,
@@ -279,6 +284,7 @@ fun ControllerShortcutsCard(
             VolumeControls(
                 hasCapability = hasCapability,
                 executeButton = executeButton,
+                level = volume,
             )
         }
     }
@@ -289,10 +295,15 @@ fun ColumnScope.VolumeControls(
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
     modifier: Modifier = Modifier,
+    level: Int? = null,
 ) {
     val isEnabled = hasCapability(DeviceControllerButton.VOLUME_UP)
+    var downPressed by remember { mutableStateOf(false) }
+    var upPressed by remember { mutableStateOf(false) }
+    val showLevel = (downPressed || upPressed) && level != null
     HorizontalControls(
-        centerText = stringResource(string.volume_controls),
+        centerText = if (showLevel) level.toString() else stringResource(string.volume_controls),
+        centerHighlight = showLevel,
         modifier = modifier,
         enabled = isEnabled,
         topButton = {
@@ -300,6 +311,7 @@ fun ColumnScope.VolumeControls(
                 text = stringResource(string.volume_down_button),
                 fontSize = 6.em,
                 repeatOnHold = true,
+                onPressedChange = { downPressed = it },
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -314,6 +326,7 @@ fun ColumnScope.VolumeControls(
                 text = stringResource(string.volume_up_button),
                 fontSize = 6.em,
                 repeatOnHold = true,
+                onPressedChange = { upPressed = it },
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -618,6 +631,7 @@ fun ColumnScope.HorizontalControls(
     centerText: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    centerHighlight: Boolean = false,
     topButton: @Composable () -> Unit,
     bottomButton: @Composable () -> Unit,
 ) {
@@ -635,7 +649,8 @@ fun ColumnScope.HorizontalControls(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .weight(1F),
-                fontSize = 3.em,
+                fontSize = if (centerHighlight) 5.em else 3.em,
+                fontWeight = if (centerHighlight) androidx.compose.ui.text.font.FontWeight.Bold else null,
             )
 
             bottomButton()

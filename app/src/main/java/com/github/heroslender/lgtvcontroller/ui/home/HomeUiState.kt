@@ -18,6 +18,7 @@ data class HomeUiState(
     val apps: List<App> = emptyList(),
     val inputs: List<Input> = emptyList(),
     val runningApp: String = "",
+    val volume: Int? = null,
     val hasCapability: (DeviceControllerButton) -> Boolean = { false },
     val executeButton: (DeviceControllerButton) -> Unit = {},
     val launchApp: (String) -> Unit = {},

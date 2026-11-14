@@ -7,6 +7,8 @@ data class ControllerUiState(
     val deviceName: String? = null,
     val deviceStatus: DeviceStatus = DeviceStatus.DISCONNECTED,
     val brightnessControls: Boolean = false,
+    val volume: Int? = null,
+    val brightness: Int? = null,
     val clickMouse: () -> Unit = {},
     val moveMouse: (Double, Double) -> Unit = { _, _ -> },
     val scroll: (Double, Double) -> Unit = { _, _ -> },

@@ -42,7 +42,38 @@ class TvEditViewModel @Inject constructor(
      */
     private var loadedTv: Tv? = null
 
+    /** Modes currently active on the TV, null while unknown. Only filled when the TV is connected. */
+    var pictureMode by mutableStateOf<String?>(null)
+        private set
+    var soundMode by mutableStateOf<String?>(null)
+        private set
+    var modesAvailable by mutableStateOf(false)
+        private set
+
+    private var modeDevice: com.github.heroslender.lgtvcontroller.device.Device? = null
+
+    fun changePictureMode(mode: String) {
+        pictureMode = mode
+        modeDevice?.changeSetting("picture", "pictureMode", mode)
+    }
+
+    fun changeSoundMode(mode: String) {
+        soundMode = mode
+        modeDevice?.changeSetting("sound", "soundMode", mode)
+    }
+
     init {
+        // Read the current picture and sound mode from the TV, if it is the one being edited
+        viewModelScope.launch {
+            val id: String = checkNotNull(savedStateHandle[NavDest.EditDevice.tvIdArg])
+            deviceManager.connectedDevice.collect { device ->
+                modeDevice = device?.takeIf { it.id == id }
+                modesAvailable = modeDevice != null
+                modeDevice?.readSetting("picture", "pictureMode") { pictureMode = it }
+                modeDevice?.readSetting("sound", "soundMode") { soundMode = it }
+            }
+        }
+
         viewModelScope.launch {
             val id: String = checkNotNull(savedStateHandle[NavDest.EditDevice.tvIdArg])
             val tv = tvRepository.getTvStream(id).first()

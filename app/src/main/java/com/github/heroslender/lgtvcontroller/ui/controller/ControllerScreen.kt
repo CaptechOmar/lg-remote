@@ -157,6 +157,8 @@ fun ControllerScreen(
                 hasCapability = controllerUiState.hasCapability,
                 executeButton = controllerUiState.executeButton,
                 brightnessControls = controllerUiState.brightnessControls,
+                volume = controllerUiState.volume,
+                brightness = controllerUiState.brightness,
             )
         }
     }
@@ -254,6 +256,8 @@ fun ColumnScope.Controls(
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
     brightnessControls: Boolean = false,
+    volume: Int? = null,
+    brightness: Int? = null,
 ) {
     Column(
         modifier = Modifier
@@ -270,6 +274,7 @@ fun ColumnScope.Controls(
             VolumeControls(
                 hasCapability = hasCapability,
                 executeButton = executeButton,
+                level = volume,
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1F),
@@ -308,6 +313,7 @@ fun ColumnScope.Controls(
                 BrightnessControls(
                     hasCapability = hasCapability,
                     executeButton = executeButton,
+                    level = brightness,
                     modifier = Modifier
                         .fillMaxHeight()
                         .weight(1F),
@@ -534,10 +540,15 @@ fun RowScope.VolumeControls(
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
     modifier: Modifier = Modifier,
+    level: Int? = null,
 ) {
     val isEnabled = hasCapability(DeviceControllerButton.VOLUME_UP)
+    var upPressed by remember { mutableStateOf(false) }
+    var downPressed by remember { mutableStateOf(false) }
+    val showLevel = (upPressed || downPressed) && level != null
     VerticalControls(
-        centerText = stringResource(string.volume_controls),
+        centerText = if (showLevel) level.toString() else stringResource(string.volume_controls),
+        centerHighlight = showLevel,
         modifier = modifier,
         enabled = isEnabled,
         topButton = {
@@ -545,6 +556,7 @@ fun RowScope.VolumeControls(
                 text = stringResource(string.volume_up_button),
                 fontSize = 6.em,
                 repeatOnHold = true,
+                onPressedChange = { upPressed = it },
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -558,6 +570,7 @@ fun RowScope.VolumeControls(
                 text = stringResource(string.volume_down_button),
                 fontSize = 6.em,
                 repeatOnHold = true,
+                onPressedChange = { downPressed = it },
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -575,10 +588,15 @@ fun RowScope.BrightnessControls(
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
     modifier: Modifier = Modifier,
+    level: Int? = null,
 ) {
     val isEnabled = hasCapability(DeviceControllerButton.BRIGHTNESS_UP)
+    var upPressed by remember { mutableStateOf(false) }
+    var downPressed by remember { mutableStateOf(false) }
+    val showLevel = (upPressed || downPressed) && level != null
     VerticalControls(
-        centerText = stringResource(string.brightness_controls),
+        centerText = if (showLevel) level.toString() else stringResource(string.brightness_controls),
+        centerHighlight = showLevel,
         modifier = modifier,
         enabled = isEnabled,
         topButton = {
@@ -586,6 +604,7 @@ fun RowScope.BrightnessControls(
                 imageVector = Icons.Filled.BrightnessHigh,
                 contentDescription = stringResource(string.brightness_up_button),
                 repeatOnHold = true,
+                onPressedChange = { upPressed = it },
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -599,6 +618,7 @@ fun RowScope.BrightnessControls(
                 imageVector = Icons.Filled.BrightnessLow,
                 contentDescription = stringResource(string.brightness_down_button),
                 repeatOnHold = true,
+                onPressedChange = { downPressed = it },
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)

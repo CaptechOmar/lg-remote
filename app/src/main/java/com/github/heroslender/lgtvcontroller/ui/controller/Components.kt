@@ -49,6 +49,7 @@ fun CTextButton(
     shape: Shape = ButtonShape,
     fontSize: TextUnit = 3.7.em,
     repeatOnHold: Boolean = false,
+    onPressedChange: ((Boolean) -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onLongClickRelease: (() -> Unit)? = null,
     onClick: () -> Unit = {},
@@ -58,6 +59,7 @@ fun CTextButton(
         shape = shape,
         modifier = modifier,
         repeatOnHold = repeatOnHold,
+        onPressedChange = onPressedChange,
         onLongClick = onLongClick,
         onLongClickRelease = onLongClickRelease,
         onClick = onClick
@@ -75,6 +77,7 @@ fun CIconButton(
     shape: Shape = ButtonShape,
     useDefaultTint: Boolean = false,
     repeatOnHold: Boolean = false,
+    onPressedChange: ((Boolean) -> Unit)? = null,
     onClick: () -> Unit = {},
 ) {
     val color = if (useDefaultTint) Color.Unspecified else null
@@ -83,6 +86,7 @@ fun CIconButton(
         shape = shape,
         modifier = modifier,
         repeatOnHold = repeatOnHold,
+        onPressedChange = onPressedChange,
         onClick = onClick
     ) {
         if (color == null) {
@@ -107,6 +111,7 @@ fun CIconButton(
     shape: Shape = ButtonShape,
     useDefaultTint: Boolean = false,
     repeatOnHold: Boolean = false,
+    onPressedChange: ((Boolean) -> Unit)? = null,
     onClick: () -> Unit = {},
 ) {
     val color = if (useDefaultTint) Color.Unspecified else null
@@ -115,6 +120,7 @@ fun CIconButton(
         shape = shape,
         modifier = modifier,
         repeatOnHold = repeatOnHold,
+        onPressedChange = onPressedChange,
         onClick = onClick
     ) {
         if (color == null) {
@@ -137,6 +143,7 @@ fun CButton(
     shape: Shape = ButtonShape,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     repeatOnHold: Boolean = false,
+    onPressedChange: ((Boolean) -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onLongClickRelease: (() -> Unit)? = null,
     onClick: () -> Unit,
@@ -150,6 +157,10 @@ fun CButton(
     val currentOnLongClick by rememberUpdatedState(onLongClick)
     val currentOnLongClickRelease by rememberUpdatedState(onLongClickRelease)
     val haptics = LocalHapticFeedback.current
+    val currentOnPressedChange by rememberUpdatedState(onPressedChange)
+    LaunchedEffect(isPressed) {
+        currentOnPressedChange?.invoke(isPressed)
+    }
 
     if (repeatOnHold) {
         LaunchedEffect(isPressed) {
@@ -255,6 +266,7 @@ fun RowScope.VerticalControls(
     centerText: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    centerHighlight: Boolean = false,
     topButton: @Composable () -> Unit,
     bottomButton: @Composable () -> Unit,
 ) {
@@ -269,7 +281,8 @@ fun RowScope.VerticalControls(
             Text(
                 text = centerText,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                fontSize = 3.em,
+                fontSize = if (centerHighlight) 5.em else 3.em,
+                fontWeight = if (centerHighlight) androidx.compose.ui.text.font.FontWeight.Bold else null,
             )
 
             bottomButton()
