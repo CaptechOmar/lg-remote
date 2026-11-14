@@ -201,22 +201,14 @@ class LgDevice(
     }
 
     override fun source() {
-        service.sendRequest(
-            "ssap://system.launcher/launch",
-            JSONObject().put("id", INPUT_PICKER_APP_ID),
-        ) { error ->
-            if (error != null) {
-                // Launching the picker app is refused on some TVs, the remote's own Input key is
-                // the other way to open it.
-                AppLog.w("LgDevice", "Input picker app failed (${error.message}), sending the Input key")
-                try {
-                    service.sendSpecialKey("INPUT_HUB")
-                } catch (e: Exception) {
-                    AppLog.e("LgDevice", "Input key failed: ${e.message}")
-                    scope.launch {
-                        _errors.emit(Snackbar.error("Couldn't open the input picker", e.message))
-                    }
-                }
+        // The remote's Input key opens the TV's input picker (launching the picker app directly
+        // is refused with "Application error")
+        try {
+            service.sendSpecialKey("INPUT_HUB")
+        } catch (e: Exception) {
+            AppLog.e("LgDevice", "Input key failed: ${e.message}")
+            scope.launch {
+                _errors.emit(Snackbar.error("Couldn't open the input picker", e.message))
             }
         }
     }
@@ -497,6 +489,3 @@ class LgDevice(
         _state.update { it.copy(displayName = tv.displayName) }
     }
 }
-
-/** The TV's built-in input picker (the screen that lists HDMI 1, HDMI 2...). */
-private const val INPUT_PICKER_APP_ID = "com.webos.app.inputpicker"
