@@ -181,16 +181,6 @@ fun TvEditBody(
                 }
             )
 
-            SwitchPrefence(
-                title = "Brightness buttons",
-                subtitle = "Show brightness buttons instead of the channel buttons on the remote",
-                value = tvDetails.brightnessControls,
-                icon = Icons.Filled.BrightnessHigh,
-                onValueChange = { newValue ->
-                    onValueChange(tvDetails.copy(brightnessControls = newValue))
-                }
-            )
-
             ChoicePreference(
                 title = stringResource(string.tv_ok_long_press),
                 value = tvDetails.okLongPressAction,
@@ -198,6 +188,16 @@ fun TvEditBody(
                 icon = Icons.Filled.TouchApp,
                 onValueChange = { newValue ->
                     onValueChange(tvDetails.copy(okLongPressAction = newValue))
+                }
+            )
+
+            SwitchPrefence(
+                title = "Brightness buttons",
+                subtitle = "Show brightness buttons instead of the channel buttons on the remote",
+                value = tvDetails.brightnessControls,
+                icon = Icons.Filled.BrightnessHigh,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(brightnessControls = newValue))
                 }
             )
         }

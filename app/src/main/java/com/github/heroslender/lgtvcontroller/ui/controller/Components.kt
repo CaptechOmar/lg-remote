@@ -20,6 +20,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.composed
+import androidx.compose.ui.platform.LocalContext
+import com.github.heroslender.lgtvcontroller.utils.Haptics
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -166,6 +170,7 @@ fun CButton(
     val currentOnLongClick by rememberUpdatedState(onLongClick)
     val currentOnLongClickRelease by rememberUpdatedState(onLongClickRelease)
     val haptics = LocalHapticFeedback.current
+    val context = LocalContext.current
     val currentOnPressedChange by rememberUpdatedState(onPressedChange)
     LaunchedEffect(isPressed) {
         currentOnPressedChange?.invoke(isPressed)
@@ -227,13 +232,19 @@ fun CButton(
         modifier = modifier.pointerInput(Unit) {
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                if (currentEnabled) isPressed = true
+                val wasEnabled = currentEnabled
+                if (wasEnabled) {
+                    isPressed = true
+                    // Felt the instant the finger touches, not after the press animation
+                    Haptics.buttonDown(context)
+                }
                 try {
                     do {
                         val event = awaitPointerEvent(PointerEventPass.Initial)
                     } while (event.changes.any { it.pressed })
                 } finally {
                     isPressed = false
+                    if (wasEnabled) Haptics.buttonUp(context)
                 }
             }
         },
@@ -278,6 +289,26 @@ fun rememberReadoutVisible(pressed: Boolean, level: Int?): Boolean {
 const val READOUT_CHANGE_WINDOW_MS = 2000L
 
 const val READOUT_LINGER_MS = 500L
+
+/** Physical-button haptics for anything touchable: a click on touch-down, a lighter tick on lift. */
+fun Modifier.touchHaptics(enabled: Boolean = true): Modifier = composed {
+    val context = LocalContext.current
+    val currentEnabled by rememberUpdatedState(enabled)
+    pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            val on = currentEnabled
+            if (on) Haptics.buttonDown(context)
+            try {
+                do {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                } while (event.changes.any { it.pressed })
+            } finally {
+                if (on) Haptics.buttonUp(context)
+            }
+        }
+    }
+}
 
 /** How long a button has to be held before it starts repeating. */
 const val HOLD_REPEAT_DELAY_MS = 450L
