@@ -240,7 +240,7 @@ fun HomeScreen(
 
             AppsCard(
                 apps = uiState.apps,
-                tvId = uiState.deviceID,
+                tvId = uiState.deviceID.orEmpty(),
                 runningApp = uiState.runningApp,
                 openApp = { app ->
                     uiState.launchApp(app.id)
