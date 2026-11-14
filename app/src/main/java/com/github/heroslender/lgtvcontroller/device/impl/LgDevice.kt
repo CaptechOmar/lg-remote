@@ -272,7 +272,7 @@ class LgDevice(
 
         val payload = JSONObject()
             .put("category", "picture")
-            .put("settings", JSONObject().put("backlight", value))
+            .put("settings", JSONObject().put("energySaving", "off").put("backlight", value.toString()))
         // Newer webOS versions don't accept the settings call over the websocket ("no such
         // service or method"), but the internal settings service can be reached through an alert.
         service.lunaRequest("com.webos.settingsservice/setSystemSettings", payload) { lunaError ->
