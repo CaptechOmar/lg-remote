@@ -6,6 +6,7 @@ import com.github.heroslender.lgtvcontroller.device.DeviceStatus
 data class ControllerUiState(
     val deviceName: String? = null,
     val deviceStatus: DeviceStatus = DeviceStatus.DISCONNECTED,
+    val brightnessControls: Boolean = false,
     val clickMouse: () -> Unit = {},
     val moveMouse: (Double, Double) -> Unit = { _, _ -> },
     val scroll: (Double, Double) -> Unit = { _, _ -> },

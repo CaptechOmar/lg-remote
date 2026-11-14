@@ -22,6 +22,7 @@ import com.github.heroslender.lgtvcontroller.domain.model.Input
 import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
 import com.github.heroslender.lgtvcontroller.utils.sendRequest
+import com.github.heroslender.lgtvcontroller.utils.sendRequestAny
 import com.github.heroslender.lgtvcontroller.utils.sendSpecialKey
 import com.github.heroslender.lgtvcontroller.utils.setScreenPower
 import com.github.heroslender.lgtvcontroller.utils.setPointerButtonDown
@@ -57,6 +58,7 @@ class LgDevice(
             apps = tv.apps,
             inputs = tv.inputs,
             isKeyboardOpen = false,
+            brightnessControls = tv.brightnessControls,
         )
     )
     override val state: StateFlow<DeviceState>
@@ -209,6 +211,74 @@ class LgDevice(
             AppLog.e("LgDevice", "Input key failed: ${e.message}")
             scope.launch {
                 _errors.emit(Snackbar.error("Couldn't open the input picker", e.message))
+            }
+        }
+    }
+
+    @Volatile
+    private var backlight: Int? = null
+    private var backlightReadAt = 0L
+    private var pendingBrightness = 0
+    private var readingBacklight = false
+
+    override fun adjustBrightness(delta: Int) {
+        val now = System.currentTimeMillis()
+        val current = backlight
+        if (current != null && now - backlightReadAt < BACKLIGHT_CACHE_MS) {
+            // Known, so holding the button can send changes as fast as it repeats
+            setBacklight((current + delta).coerceIn(0, 100))
+            return
+        }
+
+        // Unknown (or maybe changed with the TV's own remote): read it first. Presses made
+        // meanwhile are added up and applied together.
+        synchronized(this) {
+            pendingBrightness += delta
+            if (readingBacklight) return
+            readingBacklight = true
+        }
+
+        val payload = JSONObject()
+            .put("category", "picture")
+            .put("keys", JSONArray().put("backlight"))
+        service.sendRequestAny(SETTINGS_GET, payload) { error, response ->
+            val value = (response as? JSONObject)
+                ?.optJSONObject("settings")
+                ?.opt("backlight")
+                ?.toString()
+                ?.toDoubleOrNull()
+                ?.toInt()
+
+            val pending = synchronized(this) {
+                readingBacklight = false
+                pendingBrightness.also { pendingBrightness = 0 }
+            }
+
+            if (error != null || value == null) {
+                AppLog.e("LgDevice", "Couldn't read the brightness: ${error?.message ?: response}")
+                scope.launch {
+                    _errors.emit(Snackbar.error("Couldn't read the brightness", error?.message))
+                }
+            } else {
+                setBacklight((value + pending).coerceIn(0, 100))
+            }
+        }
+    }
+
+    private fun setBacklight(value: Int) {
+        backlight = value
+        backlightReadAt = System.currentTimeMillis()
+
+        val payload = JSONObject()
+            .put("category", "picture")
+            .put("settings", JSONObject().put("backlight", value))
+        service.sendRequestAny(SETTINGS_SET, payload) { error, _ ->
+            if (error != null) {
+                backlight = null
+                AppLog.e("LgDevice", "Couldn't set the brightness: ${error.message}")
+                scope.launch {
+                    _errors.emit(Snackbar.error("Couldn't change the brightness", error.message))
+                }
             }
         }
     }
@@ -486,6 +556,20 @@ class LgDevice(
     }
 
     fun updateDisplayName() {
-        _state.update { it.copy(displayName = tv.displayName) }
+        _state.update {
+            it.copy(displayName = tv.displayName, brightnessControls = tv.brightnessControls)
+        }
     }
 }
+
+private const val BACKLIGHT_CACHE_MS = 20_000L
+
+private val SETTINGS_GET = listOf(
+    "ssap://settings/getSystemSettings",
+    "ssap://com.webos.settingsservice/getSystemSettings",
+)
+
+private val SETTINGS_SET = listOf(
+    "ssap://settings/setSystemSettings",
+    "ssap://com.webos.settingsservice/setSystemSettings",
+)

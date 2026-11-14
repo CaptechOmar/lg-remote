@@ -962,6 +962,7 @@ class DeviceManager(
             it.tv.homeAppId = tv.homeAppId
             it.tv.okLongPressAction = tv.okLongPressAction
             it.tv.ipAddress = tv.ipAddress
+            it.tv.brightnessControls = tv.brightnessControls
             it.tv.serviceUuid = tv.serviceUuid
         }
 

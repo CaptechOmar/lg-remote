@@ -10,4 +10,5 @@ data class DeviceState(
     val apps: List<App>,
     val inputs: List<Input>,
     val isKeyboardOpen: Boolean,
+    val brightnessControls: Boolean = false,
 )

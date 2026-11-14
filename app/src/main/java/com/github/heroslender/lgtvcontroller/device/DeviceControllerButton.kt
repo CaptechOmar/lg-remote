@@ -13,6 +13,8 @@ enum class DeviceControllerButton {
     MUTE,
     CHANNEL_UP,
     CHANNEL_DOWN,
+    BRIGHTNESS_UP,
+    BRIGHTNESS_DOWN,
     UP,
     DOWN,
     LEFT,

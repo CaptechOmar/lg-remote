@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrightnessHigh
+import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.TvOff
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.filled.KeyboardAlt
@@ -154,6 +156,7 @@ fun ControllerScreen(
                 scroll = controllerUiState.scroll,
                 hasCapability = controllerUiState.hasCapability,
                 executeButton = controllerUiState.executeButton,
+                brightnessControls = controllerUiState.brightnessControls,
             )
         }
     }
@@ -250,6 +253,7 @@ fun ColumnScope.Controls(
     scroll: (Double, Double) -> Unit,
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
+    brightnessControls: Boolean = false,
 ) {
     Column(
         modifier = Modifier
@@ -300,13 +304,23 @@ fun ColumnScope.Controls(
                 }
             }
 
-            ChannelControls(
-                hasCapability = hasCapability,
-                executeButton = executeButton,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .weight(1F),
-            )
+            if (brightnessControls) {
+                BrightnessControls(
+                    hasCapability = hasCapability,
+                    executeButton = executeButton,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1F),
+                )
+            } else {
+                ChannelControls(
+                    hasCapability = hasCapability,
+                    executeButton = executeButton,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1F),
+                )
+            }
         }
 
         if (trackpadEnabled) {
@@ -557,6 +571,47 @@ fun RowScope.VolumeControls(
                     .fillMaxWidth(),
             ) {
                 executeButton(DeviceControllerButton.VOLUME_DOWN)
+            }
+        }
+    )
+}
+
+/** Replaces the channel buttons when the TV's "brightness buttons" setting is on. */
+@Composable
+fun RowScope.BrightnessControls(
+    hasCapability: (DeviceControllerButton) -> Boolean,
+    executeButton: (DeviceControllerButton) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isEnabled = hasCapability(DeviceControllerButton.BRIGHTNESS_UP)
+    VerticalControls(
+        centerText = stringResource(string.brightness_controls),
+        modifier = modifier,
+        enabled = isEnabled,
+        topButton = {
+            CIconButton(
+                imageVector = Icons.Filled.BrightnessHigh,
+                contentDescription = stringResource(string.brightness_up_button),
+                repeatOnHold = true,
+                enabled = isEnabled,
+                modifier = Modifier
+                    .weight(1F)
+                    .fillMaxWidth()
+            ) {
+                executeButton(DeviceControllerButton.BRIGHTNESS_UP)
+            }
+        },
+        bottomButton = {
+            CIconButton(
+                imageVector = Icons.Filled.BrightnessLow,
+                contentDescription = stringResource(string.brightness_down_button),
+                repeatOnHold = true,
+                enabled = isEnabled,
+                modifier = Modifier
+                    .weight(1F)
+                    .fillMaxWidth()
+            ) {
+                executeButton(DeviceControllerButton.BRIGHTNESS_DOWN)
             }
         }
     )

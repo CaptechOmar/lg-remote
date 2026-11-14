@@ -26,6 +26,7 @@ class ControllerViewModel @Inject constructor(
                 ControllerUiState(
                     deviceName = if (deviceState.displayName.isNullOrEmpty()) device.friendlyName else deviceState.displayName,
                     deviceStatus = deviceState.status,
+                    brightnessControls = deviceState.brightnessControls,
                     clickMouse = device::mouseClick,
                     moveMouse = { x, y -> device.moveMouse(x, y) },
                     scroll = { x, y -> device.scroll(x, y) },

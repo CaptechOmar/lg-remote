@@ -16,18 +16,44 @@ fun WebOSTVService.sendRequest(
     uri: String,
     payload: JSONObject,
     onResult: (ServiceCommandError?) -> Unit,
+) = sendRequestForResult(uri, payload) { error, _ -> onResult(error) }
+
+/** Like [sendRequest], but also hands over the TV's answer. */
+fun WebOSTVService.sendRequestForResult(
+    uri: String,
+    payload: JSONObject,
+    onResult: (ServiceCommandError?, Any?) -> Unit,
 ) {
     val listener = object : ResponseListener<Any> {
         override fun onSuccess(response: Any?) {
-            onResult(null)
+            onResult(null, response)
         }
 
         override fun onError(error: ServiceCommandError) {
-            onResult(error)
+            onResult(error, null)
         }
     }
 
     ServiceCommand<ResponseListener<Any>>(this, uri, payload, true, listener).send()
+}
+
+/** Tries each address in turn (webOS versions differ) until one works. */
+fun WebOSTVService.sendRequestAny(
+    uris: List<String>,
+    payload: JSONObject,
+    onResult: (ServiceCommandError?, Any?) -> Unit,
+) {
+    fun attempt(index: Int) {
+        sendRequestForResult(uris[index], payload) { error, response ->
+            if (error == null || index == uris.lastIndex) {
+                onResult(error, response)
+            } else {
+                attempt(index + 1)
+            }
+        }
+    }
+
+    attempt(0)
 }
 
 /**

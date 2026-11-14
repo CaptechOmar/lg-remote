@@ -299,6 +299,7 @@ fun ColumnScope.VolumeControls(
             CTextButton(
                 text = stringResource(string.volume_down_button),
                 fontSize = 6.em,
+                repeatOnHold = true,
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -312,6 +313,7 @@ fun ColumnScope.VolumeControls(
             CTextButton(
                 text = stringResource(string.volume_up_button),
                 fontSize = 6.em,
+                repeatOnHold = true,
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)

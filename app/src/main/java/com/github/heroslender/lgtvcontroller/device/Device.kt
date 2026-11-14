@@ -44,6 +44,10 @@ interface Device {
             DeviceControllerButton.EXIT,
                 -> return hasCapability(KeyControl.Back)
 
+            DeviceControllerButton.BRIGHTNESS_UP,
+            DeviceControllerButton.BRIGHTNESS_DOWN,
+                -> return hasCapability(KeyControl.Any)
+
             DeviceControllerButton.HOME -> return hasCapability(KeyControl.Home)
             DeviceControllerButton.INFO -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.SOURCE -> return hasCapability(ExternalInputControl.Any)
@@ -68,6 +72,8 @@ interface Device {
             DeviceControllerButton.MUTE -> mute()
             DeviceControllerButton.CHANNEL_UP -> channelUp()
             DeviceControllerButton.CHANNEL_DOWN -> channelDown()
+            DeviceControllerButton.BRIGHTNESS_UP -> adjustBrightness(BRIGHTNESS_STEP)
+            DeviceControllerButton.BRIGHTNESS_DOWN -> adjustBrightness(-BRIGHTNESS_STEP)
             DeviceControllerButton.UP -> up()
             DeviceControllerButton.DOWN -> down()
             DeviceControllerButton.LEFT -> left()
@@ -101,6 +107,9 @@ interface Device {
     fun channelUp()
 
     fun channelDown()
+
+    /** Changes the screen brightness (backlight) by [delta] percentage points. */
+    fun adjustBrightness(delta: Int)
 
     fun up()
 
@@ -161,3 +170,6 @@ interface Device {
     fun disconnect()
     fun updateStatus(status: DeviceStatus)
 }
+
+/** How much one press of a brightness button changes the brightness, in percentage points. */
+const val BRIGHTNESS_STEP = 5

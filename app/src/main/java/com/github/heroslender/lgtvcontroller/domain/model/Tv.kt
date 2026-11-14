@@ -19,4 +19,6 @@ data class Tv(
     var serviceUuid: String? = null,
     /** Key the TV gave us when it was paired, lets us reconnect without asking again. */
     var clientKey: String? = null,
+    /** Show brightness buttons instead of the channel buttons on the remote. */
+    var brightnessControls: Boolean = false,
 )

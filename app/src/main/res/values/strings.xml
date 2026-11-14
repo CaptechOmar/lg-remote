@@ -19,6 +19,9 @@
     <string name="channel_controls">CH</string>
     <string name="channel_up_button">Channel Up</string>
     <string name="channel_down_button">Channel Down</string>
+    <string name="brightness_controls">BRI</string>
+    <string name="brightness_up_button">Brightness Up</string>
+    <string name="brightness_down_button">Brightness Down</string>
     <string name="source_button">Source</string>
     <string name="screen_off_button">Screen off</string>
     <string name="input_picker_button">Input picker</string>

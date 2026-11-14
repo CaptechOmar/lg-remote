@@ -138,6 +138,15 @@ fun TvEditBody(
             }
         )
 
+        SwitchPrefence(
+            title = "Brightness buttons",
+            subtitle = "Show brightness buttons instead of the channel buttons on the remote",
+            value = tvDetails.brightnessControls,
+            onValueChange = { newValue ->
+                onValueChange(tvDetails.copy(brightnessControls = newValue))
+            }
+        )
+
         TextPrefence(
             title = stringResource(string.tv_mac_address),
             value = tvDetails.macAddress,

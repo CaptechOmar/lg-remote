@@ -19,6 +19,7 @@ fun TvEntity.toDomain(): Tv {
         ipAddress = ipAddress,
         serviceUuid = serviceUuid,
         clientKey = clientKey,
+        brightnessControls = brightnessControls,
     )
 }
 
@@ -36,5 +37,6 @@ fun Tv.toEntity(): TvEntity {
         ipAddress = ipAddress,
         serviceUuid = serviceUuid,
         clientKey = clientKey,
+        brightnessControls = brightnessControls,
     )
 }
