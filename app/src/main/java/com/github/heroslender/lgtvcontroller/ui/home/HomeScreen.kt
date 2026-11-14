@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -217,6 +219,9 @@ fun HomeScreen(
             InputsCard(
                 inputs = uiState.inputs,
                 runningApp = uiState.runningApp,
+                openInputPicker = if (uiState.isConnected) {
+                    { uiState.executeButton(DeviceControllerButton.SOURCE) }
+                } else null,
                 switchInput = { input ->
                     uiState.launchApp(input.id)
                 }
@@ -404,11 +409,39 @@ fun InputsCard(
     inputs: List<Input>,
     runningApp: String,
     switchInput: (Input) -> Unit,
+    openInputPicker: (() -> Unit)? = null,
 ) {
     ScrollContentCard(
         iconVector = Filled.ElectricalServices,
         header = stringResource(string.inputs_card_title),
     ) {
+        if (openInputPicker != null) {
+            // Opens the TV's own input picker, to the left of the individual inputs
+            TextButton(
+                onClick = openInputPicker,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.height(96.dp),
+                colors = ButtonDefaults.outlinedButtonColors(),
+                contentPadding = PaddingValues(6.dp),
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.height(96.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.baseline_input_24),
+                        contentDescription = stringResource(string.input_picker_button),
+                        modifier = Modifier.size(48.dp),
+                    )
+                    Text(
+                        text = stringResource(string.input_picker_button),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
+
         for (appInfo in inputs) {
             TextButton(
                 onClick = { switchInput(appInfo) },

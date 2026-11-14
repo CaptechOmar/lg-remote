@@ -47,6 +47,7 @@ object PreviewDevice : Device {
     override fun home() {}
     override fun info() {}
     override fun source() {}
+    override fun toggleScreen() {}
     override fun menu() {}
     override fun qmenu() {}
     override fun red() {}

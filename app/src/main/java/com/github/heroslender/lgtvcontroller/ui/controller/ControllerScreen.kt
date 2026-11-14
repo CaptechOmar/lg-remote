@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.TvOff
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.filled.KeyboardAlt
 import androidx.compose.material3.ElevatedCard
@@ -277,14 +278,14 @@ fun ColumnScope.Controls(
                     .weight(1F)
             ) {
                 CIconButton(
-                    iconId = R.drawable.baseline_input_24,
-                    contentDescription = stringResource(string.source_button),
-                    enabled = hasCapability(DeviceControllerButton.SOURCE),
+                    imageVector = Icons.Filled.TvOff,
+                    contentDescription = stringResource(string.screen_off_button),
+                    enabled = hasCapability(DeviceControllerButton.SCREEN_OFF),
                     modifier = Modifier
                         .aspectRatio(1F, true)
                         .weight(1F),
                 ) {
-                    executeButton(DeviceControllerButton.SOURCE)
+                    executeButton(DeviceControllerButton.SCREEN_OFF)
                 }
 
                 CIconButton(

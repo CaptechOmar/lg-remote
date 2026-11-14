@@ -47,6 +47,7 @@ interface Device {
             DeviceControllerButton.HOME -> return hasCapability(KeyControl.Home)
             DeviceControllerButton.INFO -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.SOURCE -> return hasCapability(ExternalInputControl.Any)
+            DeviceControllerButton.SCREEN_OFF -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.MENU -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.QMENU -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.RED,
@@ -79,6 +80,7 @@ interface Device {
             DeviceControllerButton.HOME -> home()
             DeviceControllerButton.INFO -> info()
             DeviceControllerButton.SOURCE -> source()
+            DeviceControllerButton.SCREEN_OFF -> toggleScreen()
             DeviceControllerButton.MENU -> menu()
             DeviceControllerButton.QMENU -> qmenu()
             DeviceControllerButton.RED -> red()
@@ -124,7 +126,11 @@ interface Device {
 
     fun info()
 
+    /** Opens the TV's input picker. */
     fun source()
+
+    /** Turns the screen off (the TV stays on), or back on if it was turned off from here. */
+    fun toggleScreen()
 
     fun menu()
 

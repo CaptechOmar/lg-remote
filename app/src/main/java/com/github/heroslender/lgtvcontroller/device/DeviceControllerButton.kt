@@ -25,6 +25,7 @@ enum class DeviceControllerButton {
     HOME,
     INFO,
     SOURCE,
+    SCREEN_OFF,
     MENU,
     QMENU,
     RED,

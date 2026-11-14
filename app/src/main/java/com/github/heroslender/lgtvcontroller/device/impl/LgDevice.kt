@@ -22,6 +22,7 @@ import com.github.heroslender.lgtvcontroller.domain.model.Input
 import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
 import com.github.heroslender.lgtvcontroller.utils.sendSpecialKey
+import com.github.heroslender.lgtvcontroller.utils.setScreenPower
 import com.github.heroslender.lgtvcontroller.utils.setPointerButtonDown
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -198,7 +199,25 @@ class LgDevice(
     }
 
     override fun source() {
-        service.getExternalInputList(null)
+        launchApp(INPUT_PICKER_APP_ID)
+    }
+
+    @Volatile
+    private var screenOff = false
+
+    override fun toggleScreen() {
+        val turnOn = screenOff
+        screenOff = !turnOn
+        service.setScreenPower(turnOn) { error ->
+            if (error != null) {
+                // It didn't work, the screen is still as it was
+                screenOff = turnOn
+                AppLog.e("LgDevice", "Screen power failed: ${error.message}")
+                scope.launch {
+                    _errors.emit(Snackbar.error("Couldn't change the screen", error.message))
+                }
+            }
+        }
     }
 
     override fun menu() {
@@ -459,3 +478,6 @@ class LgDevice(
         _state.update { it.copy(displayName = tv.displayName) }
     }
 }
+
+/** The TV's built-in input picker (the screen that lists HDMI 1, HDMI 2...). */
+private const val INPUT_PICKER_APP_ID = "com.webos.app.inputpicker"
