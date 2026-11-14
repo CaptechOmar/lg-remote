@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -97,6 +98,24 @@ class DeviceManager(
      */
     val savedTvs: Flow<List<Tv>> = tvRepository.getAllTvsStream()
 
+    /** The tv the user connected to last, so the app can open straight to it. */
+    private val prefs = ctx.applicationContext.getSharedPreferences("lg_remote_state", Context.MODE_PRIVATE)
+    private val lastTvIdState = MutableStateFlow(prefs.getString(LAST_TV_KEY, null))
+
+    @Volatile
+    private var cachedSavedTvs: List<Tv> = emptyList()
+
+    /** The tv to show and connect to when the app opens. LastTv.loaded is false until the database answered. */
+    val lastTv: Flow<LastTv> = combine(savedTvs, lastTvIdState) { tvs, id ->
+        LastTv(loaded = true, tv = tvs.firstOrNull { it.id == id } ?: tvs.firstOrNull())
+    }
+
+    private fun lastTvId(): String? {
+        val saved = cachedSavedTvs
+        val id = lastTvIdState.value
+        return if (saved.isEmpty()) id else saved.firstOrNull { it.id == id }?.id ?: saved.first().id
+    }
+
     /** Tvs that were added to the device list by us (from their saved address), not by discovery. */
     private val injectedTvIds: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
@@ -127,6 +146,7 @@ class DeviceManager(
             DiscoveryManager.getInstance().start()
 
             registerNetworkCallback(ctx)
+            scope.launch { savedTvs.collect { cachedSavedTvs = it } }
             scope.launch { heartbeatLoop() }
             scope.launch { presenceLoop() }
 
@@ -466,6 +486,8 @@ class DeviceManager(
         AppLog.d("Device_Manager", "connect(${cDevice.friendlyName}) at ${cDevice.device.ipAddress}")
         reconnectJob?.cancel()
         desiredTvId = cDevice.id
+        lastTvIdState.value = cDevice.id
+        prefs.edit().putString(LAST_TV_KEY, cDevice.id).apply()
         knownNetworkDevices[cDevice.id] = cDevice
         startConnection(cDevice)
 
@@ -703,10 +725,14 @@ class DeviceManager(
     }
 
     fun shouldAutoConnect(device: LgNetworkDevice): Boolean {
+        // The app only reconnects to the tv that was used last, never to whichever tv answers
+        // first. Without a last tv (first use) the per-tv auto connect setting decides.
+        val last = lastTvId()
+        val isLast = if (last != null) device.id == last else device.tv.autoConnect
         return when (appStatus) {
-            AppStatus.AWAITING_FIRST_CONNECTION -> device.tv.autoConnect
+            AppStatus.AWAITING_FIRST_CONNECTION -> isLast
             AppStatus.AWAITING_CONNECTION_AFTER_PAUSE ->
-                if (pausedTvId == null) device.tv.autoConnect else pausedTvId == device.id
+                if (pausedTvId == null) isLast else pausedTvId == device.id
 
             else -> false
         }
@@ -903,6 +929,7 @@ class DeviceManager(
         const val CONNECT_TIMEOUT_MS = 7_000L
         const val QUICK_RESUME_MS = 5_000L
         const val REAL_DESCRIPTION_WAIT_MS = 3_000L
+        const val LAST_TV_KEY = "last_tv_id"
         const val PAIRING_TIMEOUT_MS = 90_000L
         const val HEARTBEAT_INTERVAL_MS = 8_000L
         const val HEARTBEAT_TIMEOUT_MS = 4_000L
@@ -919,3 +946,6 @@ class DeviceManager(
         const val WEBOS_PORT = 3001
     }
 }
+
+/** The tv shown when the app opens. tv is null if none was ever saved, once loaded. */
+data class LastTv(val loaded: Boolean = false, val tv: Tv? = null)

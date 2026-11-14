@@ -19,18 +19,17 @@ fun ControllerNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = NavDest.DeviceList.route,
+        startDestination = NavDest.Home.route,
         modifier = modifier
     ) {
         composable(NavDest.DeviceList.route) {
             DeviceListScreen(
                 navigateToController = {
-                    navController.navigate(NavDest.Home.route) {
-                        popUpTo(NavDest.DeviceList.route) {
-                            inclusive = false
+                    // Back to the remote, which is below the list in the back stack
+                    if (!navController.popBackStack(NavDest.Home.route, false)) {
+                        navController.navigate(NavDest.Home.route) {
+                            popUpTo(NavDest.DeviceList.route) { inclusive = true }
                         }
-
-                        launchSingleTop = true
                     }
                 }
             )
@@ -40,10 +39,13 @@ fun ControllerNavHost(
             HomeScreen(
                 navigateToDeviceList = {
                     navController.navigate(NavDest.DeviceList.route) {
-                        popUpTo(NavDest.Home.route) {
-                            inclusive = true
-                        }
-
+                        launchSingleTop = true
+                    }
+                },
+                navigateToSetup = {
+                    // First use, nothing to show: replace the remote with the device search
+                    navController.navigate(NavDest.DeviceList.route) {
+                        popUpTo(NavDest.Home.route) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
@@ -59,7 +61,7 @@ fun ControllerNavHost(
         composable(NavDest.Controller.route) {
             ControllerScreen(
                 navigateUp = {
-                    navController.navigate(NavDest.Home.route)
+                    navController.popBackStack()
                 },
             )
         }

@@ -1,5 +1,6 @@
 package com.github.heroslender.lgtvcontroller;
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
@@ -38,7 +39,9 @@ fun ControllerTopAppBar(
     actions: @Composable RowScope.() -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
     navigateUp: (() -> Unit)? = null,
+    onTitleClick: (() -> Unit)? = null,
 ) {
+    val titleModifier = if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier
     val navigationIcon: @Composable () -> Unit = {
         if (navigateUp != null) {
             IconButton(onClick = navigateUp) {
@@ -53,9 +56,9 @@ fun ControllerTopAppBar(
     TopAppBar(
         title = {
             if (subtitle == null) {
-                Text(title)
+                Text(title, modifier = titleModifier)
             } else {
-                Column {
+                Column(modifier = titleModifier) {
                     Text(title)
                     Text(
                         text = subtitle,

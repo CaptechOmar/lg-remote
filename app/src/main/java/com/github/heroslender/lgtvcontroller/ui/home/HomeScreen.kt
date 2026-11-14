@@ -41,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -128,6 +129,7 @@ fun HomeScreen(
     navigateToDeviceList: () -> Unit,
     navigateToController: () -> Unit,
     navigateToEditDevice: (String) -> Unit,
+    navigateToSetup: () -> Unit = {},
 ) {
     val uiState by homeViewModel.uiState.collectAsState()
     val textInputState by homeViewModel.tvTextInputState.collectAsState()
@@ -139,6 +141,7 @@ fun HomeScreen(
         navigateToDeviceList = navigateToDeviceList,
         navigateToController = navigateToController,
         navigateToEditDevice = navigateToEditDevice,
+        navigateToSetup = navigateToSetup,
     )
 }
 
@@ -151,7 +154,15 @@ fun HomeScreen(
     navigateToDeviceList: () -> Unit,
     navigateToController: () -> Unit,
     navigateToEditDevice: (String) -> Unit,
+    navigateToSetup: () -> Unit = {},
 ) {
+    // Nothing saved yet (first use): go and look for a tv instead of showing an empty remote
+    LaunchedEffect(uiState.loaded, uiState.hasTv) {
+        if (uiState.loaded && !uiState.hasTv) {
+            navigateToSetup()
+        }
+    }
+
     ConnectedDeviceScaffold(
         errorFlow = errorFlow,
         textInputState = textInputState,
@@ -167,7 +178,7 @@ fun HomeScreen(
 
                     append(stringResource(uiState.deviceStatus.nameResId))
                 },
-                navigateUp = navigateToDeviceList,
+                onTitleClick = navigateToDeviceList,
                 actions = {
                     TopAppBarAction(
                         imageVector = Filled.Settings,
@@ -186,7 +197,7 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             ControllerShortcutsCard(
-                isConnected = uiState.deviceID != null,
+                isConnected = uiState.isConnected,
                 hasCapability = uiState.hasCapability,
                 executeButton = uiState.executeButton,
                 navigateToController = navigateToController,
