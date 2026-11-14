@@ -103,6 +103,13 @@ class DeviceManager(
     /** Consecutive failed reachability probes per tv, see [presenceLoop]. */
     private val probeFailures = ConcurrentHashMap<String, Int>()
 
+    /**
+     * Tvs added from their saved address whose real discovery data hasn't arrived yet. The logs
+     * show connecting before that fails every time, and works right after the sdk reports the
+     * device as updated, so connecting waits for it (see [awaitRealDescription]).
+     */
+    private val awaitingRealDescription: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
     init {
         try {
             AppLog.d("Device_Manager", "Starting Device Manager...")
@@ -243,6 +250,7 @@ class DeviceManager(
     override fun onDeviceUpdated(manager: DiscoveryManager, device: ConnectableDevice) {
         AppLog.d("Device_Manager", "onDeviceUpdated :::: ${device.friendlyName}")
 
+        awaitingRealDescription.remove(device.id)
         if (device.isCompatible() && devices.value.indexOfFirst { it.id == device.id } == -1) {
             deviceFound(device)
         }
@@ -250,6 +258,9 @@ class DeviceManager(
 
     override fun onDeviceRemoved(manager: DiscoveryManager, device: ConnectableDevice) {
         AppLog.d("Device_Manager", "onDeviceRemoved :::: ${device.friendlyName}; ${device.id}")
+        // The sdk dropped it (it hadn't answered discovery for a while), so this device object is
+        // dead: connecting to it just hangs. A fresh one is created from the saved address.
+        knownNetworkDevices.remove(device.id)
         _devices.tryEmit(devices.value.toMutableList().apply { removeIf { it.id == device.id } })
     }
 
@@ -354,8 +365,11 @@ class DeviceManager(
             }
 
             injectedTvIds.add(tv.id)
+            awaitingRealDescription.add(tv.id)
             AppLog.d("Device_Manager", "Injecting saved tv ${tv.name} at $ip")
             DiscoveryManager.getInstance().onServiceAdded(provider, description)
+            // Ask the tv for its real description right away
+            rescanDiscovery()
         } catch (e: Exception) {
             AppLog.e("Device_Manager", "Failed to inject saved tv: ${e.message}")
             return null
@@ -367,6 +381,21 @@ class DeviceManager(
             delay(200)
         }
         return null
+    }
+
+    /**
+     * Waits (briefly) until the sdk has the tv's real discovery data, if the tv was added from its
+     * saved address. Connecting earlier just fails and has to be retried.
+     */
+    private suspend fun awaitRealDescription(id: String) {
+        var waited = 0L
+        while (awaitingRealDescription.contains(id) && waited < REAL_DESCRIPTION_WAIT_MS) {
+            delay(100)
+            waited += 100
+        }
+        if (awaitingRealDescription.remove(id)) {
+            AppLog.w("Device_Manager", "No discovery data for $id after ${waited}ms, connecting anyway")
+        }
     }
 
     /**
@@ -502,6 +531,7 @@ class DeviceManager(
                         rescanDiscovery()
                     }
                 } else {
+                    awaitRealDescription(id)
                     AppLog.d("Device_Manager", "Reconnect attempt ${attempt + 1} to ${target.friendlyName}")
                     val device = startConnection(target)
                     if (awaitConnected(device)) {
@@ -665,6 +695,7 @@ class DeviceManager(
 
         scope.launch {
             if (appStatus != AppStatus.RUNNING || device.tv.autoConnect) {
+                awaitRealDescription(device.id)
                 AppLog.d("Device_Manager", "Connecting to device favorite")
                 connect(device)
             }
@@ -773,6 +804,7 @@ class DeviceManager(
                 delay(WAKE_CONNECT_DELAY_MS)
                 val device = injectSavedTv(tv)
                 if (device != null) {
+                    awaitRealDescription(tv.id)
                     connect(device)
                     return
                 }
@@ -831,6 +863,7 @@ class DeviceManager(
             when {
                 device != null && device.id == id
                         && (status == DeviceStatus.CONNECTING || status == DeviceStatus.PAIRING)
+                        && reconnectJob?.isActive == true
                     -> AppLog.d("Device_Manager", "Resuming app. Already connecting to the device.")
 
                 device != null && device.id == id && status == DeviceStatus.CONNECTED
@@ -869,6 +902,7 @@ class DeviceManager(
         val RECONNECT_DELAYS_MS = longArrayOf(400L, 800L, 1500L, 3000L, 5000L)
         const val CONNECT_TIMEOUT_MS = 7_000L
         const val QUICK_RESUME_MS = 5_000L
+        const val REAL_DESCRIPTION_WAIT_MS = 3_000L
         const val PAIRING_TIMEOUT_MS = 90_000L
         const val HEARTBEAT_INTERVAL_MS = 8_000L
         const val HEARTBEAT_TIMEOUT_MS = 4_000L
