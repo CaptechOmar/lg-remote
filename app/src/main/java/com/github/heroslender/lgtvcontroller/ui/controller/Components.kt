@@ -347,7 +347,9 @@ fun ColorButton(
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
             disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        modifier = modifier.semantics { this.contentDescription = contentDescription },
+        modifier = modifier
+            .touchHaptics(enabled)
+            .semantics { this.contentDescription = contentDescription },
     ) {}
 }
 

@@ -1,5 +1,8 @@
 package com.github.heroslender.lgtvcontroller.ui.preferences
 
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -172,7 +175,7 @@ fun PreferenceItem(
     subtitle: String?,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    subtitleColor: Color = MaterialTheme.colorScheme.primary,
+    subtitleColor: Color = MaterialTheme.colorScheme.tertiary,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
@@ -190,7 +193,7 @@ fun PreferenceItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .then(clickModifier)
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
@@ -253,5 +256,79 @@ fun SwitchPrefence(
                 },
             )
         },
+    )
+}
+
+
+/**
+ * A bottom sheet for picking a preference value, styled like the rest of the settings: the
+ * options are rows of one rounded container. [content] gets a `close` that animates the sheet away.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun PreferenceSheet(
+    title: String,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.(close: () -> Unit) -> Unit,
+) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val close: () -> Unit = {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            if (!sheetState.isVisible) onDismiss()
+        }
+    }
+
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp)
+                .navigationBarsPadding()
+        ) {
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+            ) {
+                content(close)
+            }
+        }
+    }
+}
+
+/** A selectable row of a [PreferenceSheet]. */
+@Composable
+fun SheetOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    PreferenceItem(
+        title = label,
+        subtitle = null,
+        onClick = onClick,
+        modifier = Modifier.heightIn(min = 56.dp),
+        trailing = if (selected) {
+            {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+        } else null,
     )
 }

@@ -1,5 +1,10 @@
 package com.github.heroslender.lgtvcontroller.ui.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -20,7 +25,15 @@ fun ControllerNavHost(
     NavHost(
         navController = navController,
         startDestination = NavDest.Home.route,
-        modifier = modifier
+        modifier = modifier,
+        // Forward: the new screen slides in; back (also the predictive back gesture): the
+        // current one slides away shrinking while the previous one comes back
+        enterTransition = { slideInHorizontally(initialOffsetX = { it / 4 }) + fadeIn() },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 4 }) + fadeOut() },
+        popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn() },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { it / 4 }) + fadeOut() + scaleOut(targetScale = 0.9f)
+        },
     ) {
         composable(NavDest.DeviceList.route) {
             DeviceListScreen(

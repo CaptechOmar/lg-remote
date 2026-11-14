@@ -79,7 +79,7 @@ fun TextPrefence(
         subtitle = value,
         icon = icon,
         subtitleColor = if (onValueChange != null) {
-            MaterialTheme.colorScheme.primary
+            MaterialTheme.colorScheme.tertiary
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },

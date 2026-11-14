@@ -42,58 +42,16 @@ fun ChoicePreference(
     var showDialog by remember { mutableStateOf(false) }
 
     if (showDialog) {
-        Dialog(onDismissRequest = { showDialog = false }) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .heightIn(max = 400.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        options.forEach { (optionValue, label) ->
-                            val select = {
-                                onValueChange(optionValue)
-                                showDialog = false
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(onClick = select),
-                            ) {
-                                RadioButton(selected = optionValue == value, onClick = select)
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(start = 4.dp),
-                                )
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.End,
-                    ) {
-                        TextButton(onClick = { showDialog = false }) {
-                            Text("Cancel")
-                        }
-                    }
-                }
+        PreferenceSheet(title = title, onDismiss = { showDialog = false }) { close ->
+            options.forEach { (optionValue, label) ->
+                SheetOption(
+                    label = label,
+                    selected = optionValue == value,
+                    onClick = {
+                        onValueChange(optionValue)
+                        close()
+                    },
+                )
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.github.heroslender.lgtvcontroller.ui.preferences
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -79,102 +80,61 @@ fun AppPickerDialog(
     onSelected: (String) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
-    Dialog(onDismissRequest = onDismissRequest) {
-        Card(
+    PreferenceSheet(title = title, onDismiss = onDismissRequest) { close ->
+        if (apps.isEmpty()) {
+            PreferenceItem(
+                title = stringResource(string.app_picker_no_apps),
+                subtitle = null,
+            )
+        }
+
+        SheetOption(
+            label = stringResource(string.tv_home_button_default),
+            selected = value.isBlank(),
+            onClick = {
+                onSelected("")
+                close()
+            },
+        )
+
+        apps.forEach { app ->
+            SheetOption(
+                label = app.name,
+                selected = app.id == value,
+                onClick = {
+                    onSelected(app.id)
+                    close()
+                },
+            )
+        }
+
+        var customId by remember {
+            mutableStateOf(if (apps.none { it.id == value }) value else "")
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-
-                if (apps.isEmpty()) {
-                    Text(
-                        text = stringResource(string.app_picker_no_apps),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                }
-
-                LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
-                    item {
-                        AppPickerRow(
-                            label = stringResource(string.tv_home_button_default),
-                            selected = value.isBlank(),
-                            onClick = { onSelected("") },
-                        )
-                    }
-
-                    items(apps, key = { it.id }) { app ->
-                        AppPickerRow(
-                            label = app.name,
-                            selected = app.id == value,
-                            onClick = { onSelected(app.id) },
-                        )
-                    }
-                }
-
-                var customId by remember {
-                    mutableStateOf(if (apps.none { it.id == value }) value else "")
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 12.dp),
-                ) {
-                    OutlinedTextField(
-                        value = customId,
-                        onValueChange = { customId = it },
-                        label = { Text(stringResource(string.app_picker_custom_id)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1F),
-                    )
-                    TextButton(
-                        enabled = customId.isNotBlank(),
-                        onClick = { onSelected(customId.trim()) },
-                    ) {
-                        Text(stringResource(string.app_picker_use_custom_id))
-                    }
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    TextButton(onClick = onDismissRequest) {
-                        Text("Cancel")
-                    }
-                }
+            OutlinedTextField(
+                value = customId,
+                onValueChange = { customId = it },
+                label = { Text(stringResource(string.app_picker_custom_id)) },
+                singleLine = true,
+                modifier = Modifier.weight(1F),
+            )
+            TextButton(
+                enabled = customId.isNotBlank(),
+                onClick = {
+                    onSelected(customId.trim())
+                    close()
+                },
+            ) {
+                Text(stringResource(string.app_picker_use_custom_id))
             }
         }
-    }
-}
-
-@Composable
-private fun AppPickerRow(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-    ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 4.dp),
-        )
     }
 }

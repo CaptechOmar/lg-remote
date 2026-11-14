@@ -1,5 +1,7 @@
 package com.github.heroslender.lgtvcontroller.ui.controller
 
+import com.github.heroslender.lgtvcontroller.utils.Haptics
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable2D
 import androidx.compose.foundation.gestures.rememberDraggable2DState
@@ -208,6 +210,7 @@ fun Header(
 
             Row(horizontalArrangement = Arrangement.Absolute.Right) {
                 FilledIconButton(
+                    modifier = Modifier.touchHaptics(),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer
                     ),
@@ -232,6 +235,7 @@ fun PowerButton(
 ) {
     if (hasPowerCapability) {
         FilledIconButton(
+            modifier = Modifier.touchHaptics(),
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = colorResource(R.color.power)
             ),
@@ -259,6 +263,7 @@ fun ColumnScope.Controls(
     volume: Int? = null,
     brightness: Int? = null,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -383,6 +388,8 @@ fun ColumnScope.Controls(
                         },
                     )
                     .clickable(onClick = {
+                        // Only a real tap clicks (not moving the pointer), so only it gets a haptic
+                        Haptics.buttonDown(context)
                         clickMouse()
                     })
             ) {}

@@ -393,6 +393,9 @@ fun AppsCard(
     val widths = remember { mutableStateMapOf<String, Int>() }
     var draggedId by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
+    // Where the finger is on screen (inside the list's viewport) and where it started
+    var pointerX by remember { mutableFloatStateOf(0f) }
+    var startPointerX by remember { mutableFloatStateOf(0f) }
     var suppressClick by remember { mutableStateOf(false) }
     var viewport by remember { mutableIntStateOf(0) }
     val scrollState = rememberScrollState()
@@ -443,16 +446,17 @@ fun AppsCard(
 
     // Scroll the list while an app is held near its edges
     LaunchedEffect(draggedId) {
-        val edge = with(density) { 48.dp.toPx() }
-        val step = with(density) { 10.dp.toPx() }
+        val edge = with(density) { 40.dp.toPx() }
+        val maxStep = with(density) { 5.dp.toPx() }
+        val intent = with(density) { 8.dp.toPx() }
         while (isActive && draggedId != null) {
-            val id = draggedId ?: break
-            val index = order.indexOfFirst { it.id == id }
-            val width = widths[id] ?: 0
-            val screenLeft = leftOf(index) + dragOffset - scrollState.value
+            // Based on the finger, not the item (an item that starts at the edge must not scroll
+            // by itself), and only once the finger moved towards that edge
             val delta = when {
-                screenLeft < edge -> -step
-                screenLeft + width > viewport - edge -> step
+                pointerX < edge && startPointerX - pointerX > intent ->
+                    -maxStep * ((edge - pointerX) / edge).coerceIn(0f, 1f)
+                pointerX > viewport - edge && pointerX - startPointerX > intent ->
+                    maxStep * ((pointerX - (viewport - edge)) / edge).coerceIn(0f, 1f)
                 else -> 0f
             }
             if (delta != 0f) {
@@ -479,10 +483,12 @@ fun AppsCard(
                         .onSizeChanged { widths[appInfo.id] = it.width }
                         .pointerInput(appInfo.id) {
                             detectDragGesturesAfterLongPress(
-                                onDragStart = {
+                                onDragStart = { touch ->
                                     suppressClick = true
                                     draggedId = appInfo.id
                                     dragOffset = 0f
+                                    pointerX = leftOf(order.indexOf(appInfo)) - scrollState.value + touch.x
+                                    startPointerX = pointerX
                                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 },
                                 onDragEnd = {
@@ -506,6 +512,7 @@ fun AppsCard(
                                 },
                                 onDrag = { change, amount ->
                                     change.consume()
+                                    pointerX += amount.x
                                     drag(amount.x)
                                 },
                             )
