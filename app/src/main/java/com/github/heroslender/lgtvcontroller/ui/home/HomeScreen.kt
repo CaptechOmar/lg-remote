@@ -95,7 +95,10 @@ fun HomePreview(
 ) {
     val device = if (isConnected) PreviewDevice else null
     val uiState = HomeUiState(
-        device?.id,
+        loaded = true,
+        hasTv = true,
+        isConnected = isConnected,
+        deviceID = device?.id,
         deviceName = device?.friendlyName,
         deviceStatus = device?.let { runBlocking { it.state.first().status } }
             ?: DeviceStatus.DISCONNECTED,
