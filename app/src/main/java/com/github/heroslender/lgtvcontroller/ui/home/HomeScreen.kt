@@ -428,17 +428,23 @@ fun InputsCard(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
                     modifier = Modifier.height(96.dp),
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.baseline_input_24),
+                        imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.Login,
                         contentDescription = stringResource(string.input_picker_button),
-                        modifier = Modifier.size(48.dp),
+                        modifier = Modifier
+                            .weight(1F)
+                            .aspectRatio(1F, true)
+                            .padding(8.dp),
                     )
                     Text(
                         text = stringResource(string.input_picker_button),
-                        style = MaterialTheme.typography.bodySmall,
+                        autoSize = TextAutoSize.StepBased(
+                            minFontSize = 8.sp,
+                            maxFontSize = LocalTextStyle.current.fontSize
+                        ),
+                        maxLines = 1,
                     )
                 }
             }

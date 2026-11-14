@@ -327,7 +327,6 @@ fun ColumnScope.Controls(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
                 modifier = Modifier
-                    .padding(bottom = ControlsSpacing)
                     .height(IntrinsicSize.Min)
                     .fillMaxWidth()
             ) {
@@ -337,7 +336,8 @@ fun ColumnScope.Controls(
                     enabled = hasCapability(DeviceControllerButton.BACK),
                     modifier = Modifier
                         .aspectRatio(1F, true)
-                        .weight(1F),
+                        .weight(1F)
+                        .padding(bottom = ControlsSpacing),
                 ) {
                     executeButton(DeviceControllerButton.BACK)
                 }
@@ -348,7 +348,8 @@ fun ColumnScope.Controls(
                     enabled = hasCapability(DeviceControllerButton.HOME),
                     modifier = Modifier
                         .aspectRatio(1F, true)
-                        .weight(1F),
+                        .weight(1F)
+                        .padding(bottom = ControlsSpacing),
                 ) {
                     executeButton(DeviceControllerButton.HOME)
                 }
@@ -359,7 +360,8 @@ fun ColumnScope.Controls(
                     enabled = hasCapability(DeviceControllerButton.QMENU),
                     modifier = Modifier
                         .aspectRatio(1F, true)
-                        .weight(1F),
+                        .weight(1F)
+                        .padding(bottom = ControlsSpacing),
                 ) {
                     executeButton(DeviceControllerButton.QMENU)
                 }
