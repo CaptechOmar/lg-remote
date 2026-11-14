@@ -431,7 +431,7 @@ fun InputsCard(
                     modifier = Modifier.height(96.dp),
                 ) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.Login,
+                        painter = painterResource(R.drawable.baseline_login_24),
                         contentDescription = stringResource(string.input_picker_button),
                         modifier = Modifier
                             .weight(1F)
