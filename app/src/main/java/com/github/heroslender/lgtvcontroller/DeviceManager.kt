@@ -22,6 +22,7 @@ import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.storage.TvRepository
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
 import com.github.heroslender.lgtvcontroller.utils.TvProbe
+import com.github.heroslender.lgtvcontroller.utils.hasMouseSocket
 import com.github.heroslender.lgtvcontroller.utils.WakeOnLan
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -205,12 +206,16 @@ class DeviceManager(
         AppLog.d("Device_Manager", "connected to ${device.id}")
         getDevice(device.id)?.updateStatus(DeviceStatus.CONNECTED)
 
+        // Separate from loading the apps, so a failure there can't leave the arrows and OK
+        // without their socket (and the other way around)
         scope.launch {
-            // First, so a failure loading the apps can't leave the arrows and OK without a socket
-            refreshMouse(device as LgDevice)
+            delay(MOUSE_SETTLE_MS)
+            ensureMouse(device as LgDevice)
+        }
 
+        scope.launch {
             try {
-                device.loadAppsAndInputs()
+                (device as LgDevice).loadAppsAndInputs()
             } catch (e: Exception) {
                 AppLog.e(
                     "DeviceManager",
@@ -225,14 +230,31 @@ class DeviceManager(
      * died with the old connection and never replaces it ("already connected"), which leaves the
      * volume and home buttons working but the arrows and OK dead. Closing it first forces a new one.
      */
-    private suspend fun refreshMouse(device: LgDevice) {
+    private suspend fun ensureMouse(device: LgDevice) {
         try {
             val mouse = device.device.device.mouseControl
             withContext(Dispatchers.IO) { runCatching { mouse.disconnectMouse() } }
-            delay(150)
-            mouse.connectMouse()
+
+            // Asking too soon after connecting can fail without any error, so check that the
+            // socket really exists and ask again if it doesn't.
+            for (attempt in 1..MOUSE_ATTEMPTS) {
+                if (_connectedDevice.value !== device
+                    || device.state.value.status != DeviceStatus.CONNECTED
+                ) {
+                    return
+                }
+
+                runCatching { mouse.connectMouse() }
+                delay(MOUSE_CHECK_DELAY_MS)
+
+                if (device.service.hasMouseSocket()) {
+                    AppLog.d("Device_Manager", "Pointer socket ready (attempt $attempt)")
+                    return
+                }
+                AppLog.w("Device_Manager", "Pointer socket not ready (attempt $attempt)")
+            }
         } catch (e: Exception) {
-            AppLog.e("Device_Manager", "Failed to open the mouse socket: ${e.message}")
+            AppLog.e("Device_Manager", "Failed to open the pointer socket: ${e.message}")
         }
     }
 
@@ -977,7 +999,7 @@ class DeviceManager(
                     if (!device.isResponsive(RESUME_PROBE_TIMEOUT_MS)) {
                         dropDeadConnection(device)
                     } else {
-                        refreshMouse(device)
+                        ensureMouse(device)
                     }
                 }
 
@@ -1013,6 +1035,9 @@ class DeviceManager(
         const val FORCE_DISCOVERY_AFTER_MS = 1_200L
         const val FORCE_DISCOVERY_MIN_GAP_MS = 8_000L
         const val LAST_TV_KEY = "last_tv_id"
+        const val MOUSE_SETTLE_MS = 700L
+        const val MOUSE_CHECK_DELAY_MS = 900L
+        const val MOUSE_ATTEMPTS = 6
         const val REGAIN_AFTER_GIVE_UP_MS = 15_000L
         const val PAIRING_TIMEOUT_MS = 90_000L
         const val HEARTBEAT_INTERVAL_MS = 8_000L
