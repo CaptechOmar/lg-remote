@@ -246,18 +246,36 @@ fun CButton(
  * even a single tap shows it.
  */
 @Composable
-fun rememberReadoutVisible(pressed: Boolean): Boolean {
+fun rememberReadoutVisible(pressed: Boolean, level: Int?): Boolean {
     var visible by remember { mutableStateOf(false) }
+    var seen by remember { mutableStateOf(level) }
+    var pressedAt by remember { mutableStateOf(0L) }
+
     LaunchedEffect(pressed) {
-        if (pressed) {
-            visible = true
-        } else {
+        if (pressed) pressedAt = System.currentTimeMillis()
+    }
+
+    // Only appears once the value changed because of a press, so it never flashes the old value
+    LaunchedEffect(level) {
+        if (level != seen) {
+            seen = level
+            if (pressed || System.currentTimeMillis() - pressedAt < READOUT_CHANGE_WINDOW_MS) {
+                visible = true
+            }
+        }
+    }
+
+    LaunchedEffect(visible, pressed, level) {
+        if (visible && !pressed) {
             delay(READOUT_LINGER_MS)
             visible = false
         }
     }
     return visible
 }
+
+/** A value change this soon after a press still counts as caused by it. */
+const val READOUT_CHANGE_WINDOW_MS = 2000L
 
 const val READOUT_LINGER_MS = 500L
 

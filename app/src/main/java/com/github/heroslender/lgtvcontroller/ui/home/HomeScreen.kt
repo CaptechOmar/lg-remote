@@ -301,7 +301,7 @@ fun ColumnScope.VolumeControls(
     val isEnabled = hasCapability(DeviceControllerButton.VOLUME_UP)
     var downPressed by remember { mutableStateOf(false) }
     var upPressed by remember { mutableStateOf(false) }
-    val showLevel = rememberReadoutVisible(downPressed || upPressed) && level != null
+    val showLevel = rememberReadoutVisible(downPressed || upPressed, level) && level != null
     HorizontalControls(
         centerText = if (showLevel) level.toString() else stringResource(string.volume_controls),
         centerHighlight = showLevel,
@@ -449,7 +449,8 @@ fun InputsCard(
                         contentDescription = stringResource(string.input_picker_button),
                         modifier = Modifier
                             .weight(1F)
-                            .aspectRatio(1F, true),
+                            .aspectRatio(1F, true)
+                            .padding(10.dp),
                     )
                     Text(
                         text = stringResource(string.input_picker_button),

@@ -41,6 +41,7 @@ fun AppPreference(
     value: String,
     apps: List<App>,
     onValueChange: (String) -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
@@ -62,27 +63,12 @@ fun AppPreference(
         else -> apps.firstOrNull { it.id == value }?.let { "${it.name} (${it.id})" } ?: value
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 20.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(),
-                onClick = { showDialog = true },
-            )
-    ) {
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            text = currentLabel,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
+    PreferenceItem(
+        title = title,
+        subtitle = currentLabel,
+        icon = icon,
+        onClick = { showDialog = true },
+    )
 }
 
 @Composable

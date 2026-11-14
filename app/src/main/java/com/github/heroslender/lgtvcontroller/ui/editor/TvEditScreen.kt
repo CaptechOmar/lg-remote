@@ -1,6 +1,25 @@
 package com.github.heroslender.lgtvcontroller.ui.editor
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.filled.BrightnessHigh
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Router
+import androidx.compose.material.icons.filled.SettingsEthernet
+import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material3.MaterialTheme
+import com.github.heroslender.lgtvcontroller.ui.preferences.PreferenceGroup
+import com.github.heroslender.lgtvcontroller.ui.preferences.PreferenceItem
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -118,95 +137,131 @@ fun TvEditBody(
 ) {
     val tvDetails = uiState.tvDetails
     val context = LocalContext.current
-    Column(modifier = modifier.padding(15.dp, 10.dp)) {
-        TextPrefence(
-            title = "ID",
-            value = tvDetails.tvId,
-        )
+    Column(modifier = modifier.padding(16.dp, 8.dp)) {
+        PreferenceGroup("Connection") {
+            SwitchPrefence(
+                title = "Auto Connect",
+                subtitle = "Automatically connect to this device when the app starts",
+                value = tvDetails.autoConnect,
+                icon = Icons.Filled.Autorenew,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(autoConnect = newValue))
+                }
+            )
 
-        TextPrefence(
-            title = "Name",
-            value = tvDetails.tvName,
-        )
+            TextPrefence(
+                title = stringResource(string.tv_mac_address),
+                value = tvDetails.macAddress,
+                icon = Icons.Filled.SettingsEthernet,
+                inputValidation = uiState.macAddressValidator,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(macAddress = newValue.trim()))
+                }
+            )
 
-        TextPrefence(
-            title = "Display name",
-            value = tvDetails.tvDisplayName,
-            inputValidation = uiState.displayNameValidator,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(tvDisplayName = newValue.trim()))
-            }
-        )
+            TextPrefence(
+                title = "IP address",
+                value = tvDetails.ipAddress,
+                icon = Icons.Filled.Router,
+                inputValidation = uiState.ipAddressValidator,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(ipAddress = newValue.trim()))
+                }
+            )
+        }
 
-        SwitchPrefence(
-            title = "Auto Connect",
-            subtitle = "Automatically connect to this device when the app starts",
-            value = tvDetails.autoConnect,
-            onValueChange = { newValue ->
-                println("Switch changed to $newValue from ${tvDetails.autoConnect}")
-                onValueChange(tvDetails.copy(autoConnect = newValue))
-            }
-        )
+        PreferenceGroup("Remapping") {
+            AppPreference(
+                title = stringResource(string.tv_home_button_app),
+                value = tvDetails.homeAppId,
+                apps = uiState.apps,
+                icon = Icons.Filled.Home,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(homeAppId = newValue))
+                }
+            )
 
-        SwitchPrefence(
-            title = "Brightness buttons",
-            subtitle = "Show brightness buttons instead of the channel buttons on the remote",
-            value = tvDetails.brightnessControls,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(brightnessControls = newValue))
-            }
-        )
-
-        TextPrefence(
-            title = stringResource(string.tv_mac_address),
-            value = tvDetails.macAddress,
-            inputValidation = uiState.macAddressValidator,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(macAddress = newValue.trim()))
-            }
-        )
-
-        TextPrefence(
-            title = "IP address",
-            value = tvDetails.ipAddress,
-            inputValidation = uiState.ipAddressValidator,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(ipAddress = newValue.trim()))
-            }
-        )
-
-        AppPreference(
-            title = stringResource(string.tv_home_button_app),
-            value = tvDetails.homeAppId,
-            apps = uiState.apps,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(homeAppId = newValue))
-            }
-        )
-
-        ChoicePreference(
-            title = stringResource(string.tv_ok_long_press),
-            value = tvDetails.okLongPressAction,
-            options = OkLongPressOptions,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(okLongPressAction = newValue))
-            }
-        )
-
-        if (modesAvailable) {
-            // These change the TV right away, they are not saved in the app
-            ChoicePreference(
-                title = "Picture mode",
-                value = pictureMode ?: "",
-                options = PictureModes,
-                onValueChange = onPictureMode,
+            SwitchPrefence(
+                title = "Brightness buttons",
+                subtitle = "Show brightness buttons instead of the channel buttons on the remote",
+                value = tvDetails.brightnessControls,
+                icon = Icons.Filled.BrightnessHigh,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(brightnessControls = newValue))
+                }
             )
 
             ChoicePreference(
-                title = "Sound mode",
-                value = soundMode ?: "",
-                options = SoundModes,
-                onValueChange = onSoundMode,
+                title = stringResource(string.tv_ok_long_press),
+                value = tvDetails.okLongPressAction,
+                options = OkLongPressOptions,
+                icon = Icons.Filled.TouchApp,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(okLongPressAction = newValue))
+                }
+            )
+        }
+
+        PreferenceGroup("TV settings") {
+            if (modesAvailable) {
+                // These change the TV right away, they are not saved in the app
+                ChoicePreference(
+                    title = "Picture mode",
+                    value = pictureMode ?: "",
+                    options = PictureModes,
+                    icon = Icons.Filled.Image,
+                    onValueChange = onPictureMode,
+                )
+
+                ChoicePreference(
+                    title = "Sound mode",
+                    value = soundMode ?: "",
+                    options = SoundModes,
+                    icon = Icons.Filled.MusicNote,
+                    onValueChange = onSoundMode,
+                )
+            }
+
+            TextPrefence(
+                title = "Display name",
+                value = tvDetails.tvDisplayName,
+                icon = Icons.Filled.Edit,
+                inputValidation = uiState.displayNameValidator,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(tvDisplayName = newValue.trim()))
+                }
+            )
+        }
+
+        PreferenceGroup("About") {
+            TextPrefence(
+                title = "Name",
+                value = tvDetails.tvName,
+                icon = Icons.Filled.Tv,
+            )
+
+            TextPrefence(
+                title = "ID",
+                value = tvDetails.tvId,
+                icon = Icons.Filled.Tag,
+            )
+
+            PreferenceItem(
+                title = "App version",
+                subtitle = appVersion(context),
+                icon = Icons.Filled.Info,
+                subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            PreferenceItem(
+                title = "Source code",
+                subtitle = SOURCE_CODE_URL,
+                icon = Icons.Filled.Code,
+                onClick = {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_CODE_URL)))
+                    }
+                },
             )
         }
 
@@ -219,12 +274,22 @@ fun TvEditBody(
                 }
                 context.startActivity(Intent.createChooser(send, "Share connection log"))
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text("Share connection log")
         }
+    }
+}
+
+private const val SOURCE_CODE_URL = "https://github.com/CaptechOmar/lg-remote"
+
+@Suppress("DEPRECATION")
+private fun appVersion(context: Context): String {
+    return try {
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        "${info.versionName} (${info.versionCode})"
+    } catch (e: Exception) {
+        "unknown"
     }
 }
 

@@ -56,6 +56,7 @@ fun TextPrefence(
     openDialog: Boolean = false,
     onValueChange: ((String) -> Unit)? = null,
     inputValidation: InputValidator? = null,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
 ) {
     var showDialog by remember { mutableStateOf(openDialog) }
     if (showDialog) {
@@ -73,36 +74,17 @@ fun TextPrefence(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 20.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(),
-                enabled = onValueChange != null,
-                onClick = {
-                    showDialog = true
-                },
-            )
-    ) {
-        val titleColor = if (onValueChange != null) {
-            MaterialTheme.colorScheme.onSurface
+    PreferenceItem(
+        title = title,
+        subtitle = value,
+        icon = icon,
+        subtitleColor = if (onValueChange != null) {
+            MaterialTheme.colorScheme.primary
         } else {
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6F)
-        }
-
-        Text(
-            text = title,
-            color = titleColor,
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            text = value,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        onClick = if (onValueChange != null) ({ showDialog = true }) else null,
+    )
 }
 
 @Composable

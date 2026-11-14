@@ -545,7 +545,7 @@ fun RowScope.VolumeControls(
     val isEnabled = hasCapability(DeviceControllerButton.VOLUME_UP)
     var upPressed by remember { mutableStateOf(false) }
     var downPressed by remember { mutableStateOf(false) }
-    val showLevel = rememberReadoutVisible(upPressed || downPressed) && level != null
+    val showLevel = rememberReadoutVisible(upPressed || downPressed, level) && level != null
     VerticalControls(
         centerText = if (showLevel) level.toString() else stringResource(string.volume_controls),
         centerHighlight = showLevel,
@@ -593,7 +593,7 @@ fun RowScope.BrightnessControls(
     val isEnabled = hasCapability(DeviceControllerButton.BRIGHTNESS_UP)
     var upPressed by remember { mutableStateOf(false) }
     var downPressed by remember { mutableStateOf(false) }
-    val showLevel = rememberReadoutVisible(upPressed || downPressed) && level != null
+    val showLevel = rememberReadoutVisible(upPressed || downPressed, level) && level != null
     VerticalControls(
         centerText = if (showLevel) level.toString() else stringResource(string.brightness_controls),
         centerHighlight = showLevel,

@@ -109,16 +109,13 @@ class LgDevice(
         }
     }
 
-    @Volatile
-    private var volumeRefreshPending = false
+    private var volumeRefreshJob: kotlinx.coroutines.Job? = null
 
-    /** Reads the volume from the TV a moment later (after a press had time to apply). */
-    private fun refreshVolume(delayMs: Long = 150) {
-        if (volumeRefreshPending) return
-        volumeRefreshPending = true
-        scope.launch {
+    /** Reads the volume from the TV once presses have settled, to correct the shown value. */
+    private fun refreshVolume(delayMs: Long = 400) {
+        volumeRefreshJob?.cancel()
+        volumeRefreshJob = scope.launch {
             delay(delayMs)
-            volumeRefreshPending = false
             service.sendRequestAny(listOf("ssap://audio/getVolume"), JSONObject()) { error, response ->
                 val payload = response as? JSONObject
                 val level = (payload?.optJSONObject("volumeStatus") ?: payload)
@@ -130,12 +127,19 @@ class LgDevice(
         }
     }
 
+    private fun nudgeVolume(delta: Int) {
+        // Show the new value right away, the TV's answer corrects it afterwards
+        _state.update { s -> s.copy(volume = s.volume?.plus(delta)?.coerceIn(0, 100)) }
+    }
+
     override fun volumeUp() {
+        nudgeVolume(+1)
         service.volumeUp()
         refreshVolume()
     }
 
     override fun volumeDown() {
+        nudgeVolume(-1)
         service.volumeDown()
         refreshVolume()
     }
@@ -249,6 +253,10 @@ class LgDevice(
     override fun adjustBrightness(delta: Int) {
         val now = System.currentTimeMillis()
         val current = backlight
+        if (current != null && now - backlightReadAt >= BACKLIGHT_CACHE_MS) {
+            // Possibly out of date, but show the likely result at once; the fresh read corrects it
+            _state.update { it.copy(brightness = (current + delta).coerceIn(0, 100)) }
+        }
         if (current != null && now - backlightReadAt < BACKLIGHT_CACHE_MS) {
             // Known, so holding the button can send changes as fast as it repeats
             setBacklight((current + delta).coerceIn(0, 100))

@@ -19,7 +19,7 @@ android {
         // CI builds count up with the run number so every build (stable or beta) can be installed
         // over the previous one.
         versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.let { 1000 + it } ?: 14
-        versionName = "0.6.0"
+        versionName = "0.7.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

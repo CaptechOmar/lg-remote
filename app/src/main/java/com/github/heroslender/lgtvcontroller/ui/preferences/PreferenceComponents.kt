@@ -1,5 +1,24 @@
 package com.github.heroslender.lgtvcontroller.ui.preferences
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.ripple
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -121,41 +140,118 @@ fun PreferenceSeparator() {
     HorizontalDivider(thickness = 1.dp, modifier = Modifier.padding(bottom = 24.dp))
 }
 
+/** A titled group of preference rows shown together in one rounded container. */
+@Composable
+fun PreferenceGroup(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier = modifier.padding(bottom = 24.dp)) {
+        Text(
+            text = title,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp)),
+            content = content,
+        )
+    }
+}
+
+/** One row of a [PreferenceGroup]: optional leading icon, title, a value line and a trailing slot. */
+@Composable
+fun PreferenceItem(
+    title: String,
+    subtitle: String?,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    subtitleColor: Color = MaterialTheme.colorScheme.primary,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val clickModifier = if (onClick != null) {
+        Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = ripple(),
+            onClick = onClick,
+        )
+    } else {
+        Modifier
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .then(clickModifier)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(16.dp))
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    color = subtitleColor,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+
+        if (trailing != null) {
+            Spacer(Modifier.width(8.dp))
+            trailing()
+        }
+    }
+}
+
 @Composable
 fun SwitchPrefence(
     title: String,
     subtitle: String? = null,
     value: Boolean,
     onValueChange: (Boolean) -> Unit,
+    icon: ImageVector? = null,
 ) {
-    Row(
-        modifier = Modifier
-            .padding(bottom = 16.dp)
-            .fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 8.dp)
-        ) {
-            Text(
-                text = title,
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleMedium,
+    PreferenceItem(
+        title = title,
+        subtitle = subtitle ?: if (value) "On" else "Off",
+        icon = icon,
+        subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        onClick = { onValueChange(!value) },
+        trailing = {
+            Switch(
+                checked = value,
+                onCheckedChange = { onValueChange(it) },
+                thumbContent = {
+                    Icon(
+                        imageVector = if (value) Icons.Filled.Check else Icons.Filled.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                },
             )
-            Text(
-                text = subtitle ?: if (value) "On" else "Off",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        Switch(
-            checked = value,
-            onCheckedChange = { onValueChange(it) },
-            modifier = Modifier.align(Alignment.CenterVertically)
-        )
-    }
+        },
+    )
 }

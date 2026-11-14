@@ -37,6 +37,7 @@ fun ChoicePreference(
     value: String,
     options: List<Pair<String, String>>,
     onValueChange: (String) -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
@@ -97,25 +98,10 @@ fun ChoicePreference(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 20.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(),
-                onClick = { showDialog = true },
-            )
-    ) {
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            text = options.firstOrNull { it.first == value }?.second ?: value,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
+    PreferenceItem(
+        title = title,
+        subtitle = options.firstOrNull { it.first == value }?.second ?: value.ifEmpty { "-" },
+        icon = icon,
+        onClick = { showDialog = true },
+    )
 }
