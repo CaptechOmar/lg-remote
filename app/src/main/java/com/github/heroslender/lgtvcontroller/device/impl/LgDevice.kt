@@ -206,9 +206,16 @@ class LgDevice(
             JSONObject().put("id", INPUT_PICKER_APP_ID),
         ) { error ->
             if (error != null) {
-                AppLog.e("LgDevice", "Input picker failed: ${error.message}")
-                scope.launch {
-                    _errors.emit(Snackbar.error("Couldn't open the input picker", error.message))
+                // Launching the picker app is refused on some TVs, the remote's own Input key is
+                // the other way to open it.
+                AppLog.w("LgDevice", "Input picker app failed (${error.message}), sending the Input key")
+                try {
+                    service.sendSpecialKey("INPUT_HUB")
+                } catch (e: Exception) {
+                    AppLog.e("LgDevice", "Input key failed: ${e.message}")
+                    scope.launch {
+                        _errors.emit(Snackbar.error("Couldn't open the input picker", e.message))
+                    }
                 }
             }
         }
