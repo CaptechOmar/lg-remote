@@ -29,6 +29,7 @@ import com.github.heroslender.lgtvcontroller.utils.setScreenPower
 import com.github.heroslender.lgtvcontroller.utils.setPointerButtonDown
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -108,12 +109,35 @@ class LgDevice(
         }
     }
 
+    @Volatile
+    private var volumeRefreshPending = false
+
+    /** Reads the volume from the TV a moment later (after a press had time to apply). */
+    private fun refreshVolume(delayMs: Long = 150) {
+        if (volumeRefreshPending) return
+        volumeRefreshPending = true
+        scope.launch {
+            delay(delayMs)
+            volumeRefreshPending = false
+            service.sendRequestAny(listOf("ssap://audio/getVolume"), JSONObject()) { error, response ->
+                val payload = response as? JSONObject
+                val level = (payload?.optJSONObject("volumeStatus") ?: payload)
+                    ?.opt("volume")?.toString()?.toDoubleOrNull()?.toInt()
+                if (error == null && level != null) {
+                    _state.update { it.copy(volume = level) }
+                }
+            }
+        }
+    }
+
     override fun volumeUp() {
         service.volumeUp()
+        refreshVolume()
     }
 
     override fun volumeDown() {
         service.volumeDown()
+        refreshVolume()
     }
 
     override fun mute() {
@@ -585,16 +609,15 @@ class LgDevice(
             _errors.emit(Snackbar.error("Failed to subscribe to running app", e.message))
         }
 
-        try {
-            service.subscribeVolume(object : VolumeControl.VolumeListener {
-                override fun onSuccess(volume: Float) {
-                    _state.update { it.copy(volume = volume.toInt()) }
+        refreshVolume(0)
+        if (tv.brightnessControls) {
+            readSetting("picture", "backlight") { value ->
+                value?.toDoubleOrNull()?.toInt()?.let { level ->
+                    backlight = level
+                    backlightReadAt = System.currentTimeMillis()
+                    _state.update { it.copy(brightness = level) }
                 }
-
-                override fun onError(error: ServiceCommandError) {}
-            })
-        } catch (e: Exception) {
-            AppLog.w("LgDevice", "Failed to subscribe to volume: ${e.message}")
+            }
         }
 
         try {

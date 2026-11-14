@@ -24,7 +24,7 @@
     <string name="brightness_down_button">Brightness Down</string>
     <string name="source_button">Source</string>
     <string name="screen_off_button">Screen off</string>
-    <string name="input_picker_button">Input picker</string>
+    <string name="input_picker_button">Input</string>
     <string name="red_button">Red</string>
     <string name="green_button">Green</string>
     <string name="yellow_button">Yellow</string>

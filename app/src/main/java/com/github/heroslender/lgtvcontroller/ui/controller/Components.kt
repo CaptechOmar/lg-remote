@@ -20,6 +20,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -150,7 +156,10 @@ fun CButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    // The finger really being down. The button's own pressed state can get stuck after quick
+    // repeated taps (the hold-repeat then kept firing), so this is tracked from the raw touches.
+    var isPressed by remember { mutableStateOf(false) }
+    val currentEnabled by rememberUpdatedState(enabled)
     val currentOnClick by rememberUpdatedState(onClick)
     // Whether the current press already fired repeats, so releasing doesn't fire one more click
     val repeated = remember { BooleanArray(1) }
@@ -215,10 +224,42 @@ fun CButton(
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
             disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        modifier = modifier,
+        modifier = modifier.pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                if (currentEnabled) isPressed = true
+                try {
+                    do {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                    } while (event.changes.any { it.pressed })
+                } finally {
+                    isPressed = false
+                }
+            }
+        },
         content = content
     )
 }
+
+/**
+ * Whether a value readout should be visible: while [pressed] and for a moment after it ends, so
+ * even a single tap shows it.
+ */
+@Composable
+fun rememberReadoutVisible(pressed: Boolean): Boolean {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(pressed) {
+        if (pressed) {
+            visible = true
+        } else {
+            delay(READOUT_LINGER_MS)
+            visible = false
+        }
+    }
+    return visible
+}
+
+const val READOUT_LINGER_MS = 500L
 
 /** How long a button has to be held before it starts repeating. */
 const val HOLD_REPEAT_DELAY_MS = 450L
