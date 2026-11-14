@@ -85,6 +85,9 @@ class DeviceManager(
     @Volatile
     private var pausedAtMs = 0L
 
+    @Volatile
+    private var lastForcedDiscoveryMs = 0L
+
     /**
      * Every tv seen this session, even after discovery stopped reporting it. The discovery list
      * drops a tv roughly a minute after it stops answering, but its last known address is still
@@ -408,13 +411,47 @@ class DeviceManager(
      * saved address. Connecting earlier just fails and has to be retried.
      */
     private suspend fun awaitRealDescription(id: String) {
+        if (!awaitingRealDescription.contains(id)) return
+
         var waited = 0L
+        var forced = false
         while (awaitingRealDescription.contains(id) && waited < REAL_DESCRIPTION_WAIT_MS) {
             delay(100)
             waited += 100
+
+            if (!forced && waited >= FORCE_DISCOVERY_AFTER_MS) {
+                // The sdk's SSDP provider only reports a tv the first time it sees it, so if it
+                // already knew this one before we added it from its saved address, the real data
+                // never comes. Make it forget what it has seen and search from scratch.
+                forced = true
+                forceFreshDiscovery()
+            }
         }
-        if (awaitingRealDescription.remove(id)) {
+
+        if (awaitingRealDescription.contains(id)) {
             AppLog.w("Device_Manager", "No discovery data for $id after ${waited}ms, connecting anyway")
+        }
+    }
+
+    private suspend fun forceFreshDiscovery() {
+        val now = System.currentTimeMillis()
+        if (now - lastForcedDiscoveryMs < FORCE_DISCOVERY_MIN_GAP_MS) return
+        lastForcedDiscoveryMs = now
+
+        AppLog.d("Device_Manager", "Restarting discovery to get the tv's real data")
+        withContext(Dispatchers.IO) {
+            try {
+                for (provider in DiscoveryManager.getInstance().discoveryProviders) {
+                    if (provider is SSDPDiscoveryProvider) {
+                        provider.reset()
+                        provider.start()
+                    } else {
+                        provider.rescan()
+                    }
+                }
+            } catch (e: Exception) {
+                AppLog.e("Device_Manager", "Failed to restart discovery: ${e.message}")
+            }
         }
     }
 
@@ -928,7 +965,9 @@ class DeviceManager(
         val RECONNECT_DELAYS_MS = longArrayOf(400L, 800L, 1500L, 3000L, 5000L)
         const val CONNECT_TIMEOUT_MS = 7_000L
         const val QUICK_RESUME_MS = 5_000L
-        const val REAL_DESCRIPTION_WAIT_MS = 3_000L
+        const val REAL_DESCRIPTION_WAIT_MS = 4_000L
+        const val FORCE_DISCOVERY_AFTER_MS = 1_200L
+        const val FORCE_DISCOVERY_MIN_GAP_MS = 8_000L
         const val LAST_TV_KEY = "last_tv_id"
         const val PAIRING_TIMEOUT_MS = 90_000L
         const val HEARTBEAT_INTERVAL_MS = 8_000L
