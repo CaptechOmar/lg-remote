@@ -21,6 +21,7 @@ import com.github.heroslender.lgtvcontroller.domain.model.App
 import com.github.heroslender.lgtvcontroller.domain.model.Input
 import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
+import com.github.heroslender.lgtvcontroller.utils.sendRequest
 import com.github.heroslender.lgtvcontroller.utils.sendSpecialKey
 import com.github.heroslender.lgtvcontroller.utils.setScreenPower
 import com.github.heroslender.lgtvcontroller.utils.setPointerButtonDown
@@ -35,6 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -199,7 +201,17 @@ class LgDevice(
     }
 
     override fun source() {
-        launchApp(INPUT_PICKER_APP_ID)
+        service.sendRequest(
+            "ssap://system.launcher/launch",
+            JSONObject().put("id", INPUT_PICKER_APP_ID),
+        ) { error ->
+            if (error != null) {
+                AppLog.e("LgDevice", "Input picker failed: ${error.message}")
+                scope.launch {
+                    _errors.emit(Snackbar.error("Couldn't open the input picker", error.message))
+                }
+            }
+        }
     }
 
     @Volatile

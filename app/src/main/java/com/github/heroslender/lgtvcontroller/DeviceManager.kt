@@ -199,15 +199,33 @@ class DeviceManager(
         getDevice(device.id)?.updateStatus(DeviceStatus.CONNECTED)
 
         scope.launch {
+            // First, so a failure loading the apps can't leave the arrows and OK without a socket
+            refreshMouse(device as LgDevice)
+
             try {
-                (device as LgDevice).loadAppsAndInputs()
-                device.device.device.mouseControl.connectMouse()
+                device.loadAppsAndInputs()
             } catch (e: Exception) {
                 AppLog.e(
                     "DeviceManager",
                     "Failed to load apps and inputs for device ${device.id}: ${e.message}"
                 )
             }
+        }
+    }
+
+    /**
+     * (Re)opens the socket the arrows and OK are sent through. The sdk keeps a mouse socket that
+     * died with the old connection and never replaces it ("already connected"), which leaves the
+     * volume and home buttons working but the arrows and OK dead. Closing it first forces a new one.
+     */
+    private suspend fun refreshMouse(device: LgDevice) {
+        try {
+            val mouse = device.device.device.mouseControl
+            withContext(Dispatchers.IO) { runCatching { mouse.disconnectMouse() } }
+            delay(150)
+            mouse.connectMouse()
+        } catch (e: Exception) {
+            AppLog.e("Device_Manager", "Failed to open the mouse socket: ${e.message}")
         }
     }
 
@@ -934,6 +952,8 @@ class DeviceManager(
                     // Only left the app briefly, the connection is most likely still fine
                     if (!device.isResponsive(RESUME_PROBE_TIMEOUT_MS)) {
                         dropDeadConnection(device)
+                    } else {
+                        refreshMouse(device)
                     }
                 }
 
