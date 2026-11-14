@@ -258,7 +258,7 @@ fun ColumnScope.Controls(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .then(if (trackpadEnabled) Modifier else Modifier.verticalScroll(rememberScrollState()))
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
@@ -324,11 +324,51 @@ fun ColumnScope.Controls(
         }
 
         if (trackpadEnabled) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+                modifier = Modifier
+                    .padding(bottom = ControlsSpacing)
+                    .height(IntrinsicSize.Min)
+                    .fillMaxWidth()
+            ) {
+                CIconButton(
+                    iconId = R.drawable.baseline_arrow_back_24,
+                    contentDescription = stringResource(string.back_button),
+                    enabled = hasCapability(DeviceControllerButton.BACK),
+                    modifier = Modifier
+                        .aspectRatio(1F, true)
+                        .weight(1F),
+                ) {
+                    executeButton(DeviceControllerButton.BACK)
+                }
+
+                CIconButton(
+                    iconId = R.drawable.baseline_home_24,
+                    contentDescription = stringResource(string.home_button),
+                    enabled = hasCapability(DeviceControllerButton.HOME),
+                    modifier = Modifier
+                        .aspectRatio(1F, true)
+                        .weight(1F),
+                ) {
+                    executeButton(DeviceControllerButton.HOME)
+                }
+
+                CIconButton(
+                    iconId = R.drawable.baseline_settings_24,
+                    contentDescription = stringResource(string.settings_button),
+                    enabled = hasCapability(DeviceControllerButton.QMENU),
+                    modifier = Modifier
+                        .aspectRatio(1F, true)
+                        .weight(1F),
+                ) {
+                    executeButton(DeviceControllerButton.QMENU)
+                }
+            }
+
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1F)
-                    .padding(bottom = 8.dp)
                     .draggable2D(
                         state = rememberDraggable2DState { delta ->
                             moveMouse(delta.x.toDouble(), delta.y.toDouble())
@@ -339,6 +379,7 @@ fun ColumnScope.Controls(
                     })
             ) {}
 
+            ColorButtonsRow(hasCapability, executeButton)
         } else {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
@@ -481,57 +522,7 @@ fun ColumnScope.Controls(
                     executeButton(DeviceControllerButton.EXIT)
                 }
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = ColorButtonTopSpacing)
-                    .height(ColorButtonHeight)
-            ) {
-                ColorButton(
-                    color = ColorButtonRed,
-                    contentDescription = stringResource(string.red_button),
-                    enabled = hasCapability(DeviceControllerButton.RED),
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                ) {
-                    executeButton(DeviceControllerButton.RED)
-                }
-
-                ColorButton(
-                    color = ColorButtonGreen,
-                    contentDescription = stringResource(string.green_button),
-                    enabled = hasCapability(DeviceControllerButton.GREEN),
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                ) {
-                    executeButton(DeviceControllerButton.GREEN)
-                }
-
-                ColorButton(
-                    color = ColorButtonYellow,
-                    contentDescription = stringResource(string.yellow_button),
-                    enabled = hasCapability(DeviceControllerButton.YELLOW),
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                ) {
-                    executeButton(DeviceControllerButton.YELLOW)
-                }
-
-                ColorButton(
-                    color = ColorButtonBlue,
-                    contentDescription = stringResource(string.blue_button),
-                    enabled = hasCapability(DeviceControllerButton.BLUE),
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                ) {
-                    executeButton(DeviceControllerButton.BLUE)
-                }
-            }
+            ColorButtonsRow(hasCapability, executeButton)
         }
     }
 }
@@ -657,3 +648,62 @@ fun RowScope.ChannelControls(
     )
 }
 
+
+
+@Composable
+private fun ColorButtonsRow(
+    hasCapability: (DeviceControllerButton) -> Boolean,
+    executeButton: (DeviceControllerButton) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = ColorButtonTopSpacing)
+            .height(ColorButtonHeight)
+    ) {
+        ColorButton(
+            color = ColorButtonRed,
+            contentDescription = stringResource(string.red_button),
+            enabled = hasCapability(DeviceControllerButton.RED),
+            modifier = Modifier
+                .weight(1F)
+                .fillMaxHeight(),
+        ) {
+            executeButton(DeviceControllerButton.RED)
+        }
+
+        ColorButton(
+            color = ColorButtonGreen,
+            contentDescription = stringResource(string.green_button),
+            enabled = hasCapability(DeviceControllerButton.GREEN),
+            modifier = Modifier
+                .weight(1F)
+                .fillMaxHeight(),
+        ) {
+            executeButton(DeviceControllerButton.GREEN)
+        }
+
+        ColorButton(
+            color = ColorButtonYellow,
+            contentDescription = stringResource(string.yellow_button),
+            enabled = hasCapability(DeviceControllerButton.YELLOW),
+            modifier = Modifier
+                .weight(1F)
+                .fillMaxHeight(),
+        ) {
+            executeButton(DeviceControllerButton.YELLOW)
+        }
+
+        ColorButton(
+            color = ColorButtonBlue,
+            contentDescription = stringResource(string.blue_button),
+            enabled = hasCapability(DeviceControllerButton.BLUE),
+            modifier = Modifier
+                .weight(1F)
+                .fillMaxHeight(),
+        ) {
+            executeButton(DeviceControllerButton.BLUE)
+        }
+    }
+}
