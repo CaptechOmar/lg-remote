@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable2D
 import androidx.compose.foundation.gestures.rememberDraggable2DState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.draw.clip
@@ -458,16 +459,10 @@ fun ColumnScope.Controls(
                 )
             }
         } else if (numberPad && showNumbers) {
-            Column(modifier = Modifier.padding(bottom = ControlsSpacing)) {
-                HomeVolumeControls(
-                    hasCapability = hasCapability,
-                    executeButton = executeButton,
-                    level = volume,
-                )
-            }
             NumberPad(
                 hasCapability = hasCapability,
                 executeButton = executeButton,
+                volume = volume,
                 showDirections = { showNumbers = false },
             )
         } else {
@@ -833,73 +828,115 @@ private val NumberButtons = listOf(
 )
 
 /**
- * The number pad that replaces the arrows and OK: 1-9, then a row with the way back to the arrows,
- * 0 and OK.
+ * The number pad that replaces the arrows and OK. Every row sits exactly where the matching row of
+ * the normal remote does: 4-5-6 where Home is, the D-pad button where 123 is.
  */
 @Composable
 private fun NumberPad(
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
+    volume: Int?,
     showDirections: () -> Unit,
 ) {
-    Column {
-        NumberButtons.chunked(3).forEach { row ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
-                modifier = Modifier.fillMaxWidth(),
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        // Same sizes as the normal remote: a square cell with the gap cut out of its height
+        val cell = (maxWidth - ControlsSpacing * 2) / 3
+        val buttonHeight = cell - ControlsSpacing
+
+        @Composable
+        fun RowScope.Num(button: DeviceControllerButton) {
+            CTextButton(
+                text = button.name.removePrefix("NUM_"),
+                fontSize = 6.em,
+                enabled = hasCapability(button),
+                modifier = Modifier
+                    .weight(1F)
+                    .height(buttonHeight),
             ) {
-                row.forEach { button ->
-                    CTextButton(
-                        text = button.name.removePrefix("NUM_"),
-                        fontSize = 6.em,
-                        enabled = hasCapability(button),
-                        modifier = Modifier
-                            .weight(1F)
-                            .aspectRatio(1F, true)
-                            .padding(bottom = ControlsSpacing),
-                    ) {
-                        executeButton(button)
-                    }
-                }
+                executeButton(button)
             }
         }
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            CTextButton(
-                text = stringResource(string.ok_button),
-                enabled = hasCapability(DeviceControllerButton.OK),
+        Column {
+            // The block of the volume/mute/brightness buttons: volume bar centered above 1-2-3
+            Column(
                 modifier = Modifier
-                    .weight(1F)
-                    .aspectRatio(1F, true)
-                            .padding(bottom = ControlsSpacing),
+                    .padding(bottom = ControlsSpacing)
+                    .height(cell * 2 + ControlsSpacing),
             ) {
-                executeButton(DeviceControllerButton.OK)
-            }
-            CTextButton(
-                text = "0",
-                fontSize = 6.em,
-                enabled = hasCapability(DeviceControllerButton.NUM_0),
-                modifier = Modifier
-                    .weight(1F)
-                    .aspectRatio(1F, true)
-                            .padding(bottom = ControlsSpacing),
-            ) {
-                executeButton(DeviceControllerButton.NUM_0)
+                Box(
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column {
+                        HomeVolumeControls(
+                            hasCapability = hasCapability,
+                            executeButton = executeButton,
+                            level = volume,
+                        )
+                    }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    NumberButtons.take(3).forEach { Num(it) }
+                }
             }
 
-            CIconButton(
-                iconId = R.drawable.ic_dpad,
-                contentDescription = "Arrow buttons",
+            // Where Home, up and settings are
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
                 modifier = Modifier
-                    .weight(1F)
-                    .aspectRatio(1F, true)
-                            .padding(bottom = ControlsSpacing),
-                onClick = showDirections,
-            )
+                    .fillMaxWidth()
+                    .padding(bottom = ControlsSpacing),
+            ) {
+                NumberButtons.drop(3).take(3).forEach { Num(it) }
+            }
 
+            // Where the arrows and OK are, the buttons centered in that band
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(3F),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    NumberButtons.drop(6).take(3).forEach { Num(it) }
+                }
+            }
+
+            // Where back, down and 123 are
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = ControlsSpacing),
+            ) {
+                CTextButton(
+                    text = stringResource(string.ok_button),
+                    enabled = hasCapability(DeviceControllerButton.OK),
+                    modifier = Modifier
+                        .weight(1F)
+                        .height(buttonHeight),
+                ) {
+                    executeButton(DeviceControllerButton.OK)
+                }
+                Num(DeviceControllerButton.NUM_0)
+                CIconButton(
+                    iconId = R.drawable.ic_dpad,
+                    contentDescription = "Arrow buttons",
+                    modifier = Modifier
+                        .weight(1F)
+                        .height(buttonHeight),
+                    onClick = showDirections,
+                )
+            }
         }
     }
 }
