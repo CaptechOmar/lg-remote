@@ -54,6 +54,14 @@ android {
             initWith(getByName("release"))
             versionNameSuffix = "-beta"
             isDebuggable = false
+            // Set here rather than inherited: initWith copies the release type as it is at this
+            // point, before it is configured below, so the beta was not being shrunk at all
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = if (ciKeystore != null) {
                 signingConfigs.getByName("ci")
             } else {
