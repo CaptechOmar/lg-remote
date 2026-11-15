@@ -18,6 +18,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.animateDpAsState
+import com.github.heroslender.lgtvcontroller.ui.home.VolumeControls as HomeVolumeControls
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -458,7 +459,7 @@ fun ColumnScope.Controls(
             }
         } else if (numberPad && showNumbers) {
             Column(modifier = Modifier.padding(bottom = ControlsSpacing)) {
-                com.github.heroslender.lgtvcontroller.ui.home.VolumeControls(
+                HomeVolumeControls(
                     hasCapability = hasCapability,
                     executeButton = executeButton,
                     level = volume,
