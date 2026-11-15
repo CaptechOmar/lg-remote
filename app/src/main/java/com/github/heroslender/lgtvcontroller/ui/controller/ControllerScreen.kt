@@ -842,7 +842,7 @@ private fun NumberPad(
     executeButton: (DeviceControllerButton) -> Unit,
     showDirections: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(ControlsSpacing)) {
+    Column {
         NumberButtons.chunked(3).forEach { row ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
@@ -855,7 +855,8 @@ private fun NumberPad(
                         enabled = hasCapability(button),
                         modifier = Modifier
                             .weight(1F)
-                            .aspectRatio(1F, true),
+                            .aspectRatio(1F, true)
+                            .padding(bottom = ControlsSpacing),
                     ) {
                         executeButton(button)
                     }
@@ -872,7 +873,8 @@ private fun NumberPad(
                 enabled = hasCapability(DeviceControllerButton.OK),
                 modifier = Modifier
                     .weight(1F)
-                    .aspectRatio(1F, true),
+                    .aspectRatio(1F, true)
+                            .padding(bottom = ControlsSpacing),
             ) {
                 executeButton(DeviceControllerButton.OK)
             }
@@ -882,7 +884,8 @@ private fun NumberPad(
                 enabled = hasCapability(DeviceControllerButton.NUM_0),
                 modifier = Modifier
                     .weight(1F)
-                    .aspectRatio(1F, true),
+                    .aspectRatio(1F, true)
+                            .padding(bottom = ControlsSpacing),
             ) {
                 executeButton(DeviceControllerButton.NUM_0)
             }
@@ -892,7 +895,8 @@ private fun NumberPad(
                 contentDescription = "Arrow buttons",
                 modifier = Modifier
                     .weight(1F)
-                    .aspectRatio(1F, true),
+                    .aspectRatio(1F, true)
+                            .padding(bottom = ControlsSpacing),
                 onClick = showDirections,
             )
 
