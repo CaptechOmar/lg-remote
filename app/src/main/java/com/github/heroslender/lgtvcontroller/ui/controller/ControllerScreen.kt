@@ -288,7 +288,10 @@ fun ColumnScope.Controls(
             .weight(1F)
             .then(if (trackpadEnabled) Modifier else Modifier.verticalScroll(rememberScrollState()))
     ) {
-        Row(
+        // In number mode the volume, brightness and mute blocks give way to the horizontal volume
+        // bar of the home page, so every button keeps its usual size
+        val numbersVisible = numberPad && showNumbers && !trackpadEnabled
+        if (!numbersVisible) Row(
             horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
             modifier = Modifier
                 .padding(bottom = ControlsSpacing)
@@ -454,6 +457,13 @@ fun ColumnScope.Controls(
                 )
             }
         } else if (numberPad && showNumbers) {
+            Column(modifier = Modifier.padding(bottom = ControlsSpacing)) {
+                com.github.heroslender.lgtvcontroller.ui.home.VolumeControls(
+                    hasCapability = hasCapability,
+                    executeButton = executeButton,
+                    level = volume,
+                )
+            }
             NumberPad(
                 hasCapability = hasCapability,
                 executeButton = executeButton,
@@ -831,8 +841,6 @@ private fun NumberPad(
     executeButton: (DeviceControllerButton) -> Unit,
     showDirections: () -> Unit,
 ) {
-    // Four rows in the room three square ones take
-    val ratio = 1.33F
     Column(verticalArrangement = Arrangement.spacedBy(ControlsSpacing)) {
         NumberButtons.chunked(3).forEach { row ->
             Row(
@@ -846,7 +854,7 @@ private fun NumberPad(
                         enabled = hasCapability(button),
                         modifier = Modifier
                             .weight(1F)
-                            .aspectRatio(ratio),
+                            .aspectRatio(1F, true),
                     ) {
                         executeButton(button)
                     }
@@ -863,7 +871,7 @@ private fun NumberPad(
                 enabled = hasCapability(DeviceControllerButton.OK),
                 modifier = Modifier
                     .weight(1F)
-                    .aspectRatio(ratio),
+                    .aspectRatio(1F, true),
             ) {
                 executeButton(DeviceControllerButton.OK)
             }
@@ -873,7 +881,7 @@ private fun NumberPad(
                 enabled = hasCapability(DeviceControllerButton.NUM_0),
                 modifier = Modifier
                     .weight(1F)
-                    .aspectRatio(ratio),
+                    .aspectRatio(1F, true),
             ) {
                 executeButton(DeviceControllerButton.NUM_0)
             }
@@ -883,7 +891,7 @@ private fun NumberPad(
                 contentDescription = "Arrow buttons",
                 modifier = Modifier
                     .weight(1F)
-                    .aspectRatio(ratio),
+                    .aspectRatio(1F, true),
                 onClick = showDirections,
             )
 
