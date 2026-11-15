@@ -1,7 +1,5 @@
 package com.github.heroslender.lgtvcontroller.ui.navigation
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
@@ -9,7 +7,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -20,31 +19,28 @@ import com.github.heroslender.lgtvcontroller.ui.devicelist.DeviceListScreen
 import com.github.heroslender.lgtvcontroller.ui.editor.TvEditScreen
 import com.github.heroslender.lgtvcontroller.ui.home.HomeScreen
 
-// Linear tweens: the predictive back gesture scrubs through these by the finger's progress, and
-// the default springs barely move at the start, which felt like the gesture wasn't registering.
-private val NavSlide = tween<IntOffset>(300, easing = LinearEasing)
-private val NavFade = tween<Float>(300, easing = LinearEasing)
-private val NavScale = tween<Float>(300, easing = LinearEasing)
-
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ControllerNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
 ) {
+    val motion = MaterialTheme.motionScheme
     NavHost(
         navController = navController,
         startDestination = NavDest.Home.route,
         modifier = modifier,
         // Forward: the new screen slides in; back (also the predictive back gesture): the
         // current one slides away shrinking while the previous one comes back
-        enterTransition = { slideInHorizontally(NavSlide, initialOffsetX = { it / 4 }) + fadeIn(NavFade) },
-        exitTransition = { slideOutHorizontally(NavSlide, targetOffsetX = { -it / 5 }) },
-        // Back: the previous screen is fully visible underneath from the first moment and the
-        // leaving one follows the gesture over the whole width, so the first pixels already move
-        popEnterTransition = { slideInHorizontally(NavSlide, initialOffsetX = { -it / 5 }) },
+        // Same as Expressive Voice: full-width slides on the Material motion spring, which
+        // follows the predictive back gesture right from the first pixel. The leaving screen also
+        // shrinks a little.
+        enterTransition = { slideInHorizontally(motion.defaultSpatialSpec(), initialOffsetX = { it }) + fadeIn() },
+        exitTransition = { slideOutHorizontally(motion.defaultSpatialSpec(), targetOffsetX = { -it }) + fadeOut() },
+        popEnterTransition = { slideInHorizontally(motion.defaultSpatialSpec(), initialOffsetX = { -it }) + fadeIn() },
         popExitTransition = {
-            slideOutHorizontally(NavSlide, targetOffsetX = { it }) +
-                scaleOut(NavScale, targetScale = 0.85f)
+            slideOutHorizontally(motion.defaultSpatialSpec(), targetOffsetX = { it }) +
+                fadeOut() + scaleOut(motion.defaultSpatialSpec(), targetScale = 0.9f)
         },
     ) {
         composable(NavDest.DeviceList.route) {
