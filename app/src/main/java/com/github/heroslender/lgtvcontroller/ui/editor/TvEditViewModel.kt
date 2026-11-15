@@ -13,6 +13,7 @@ import com.github.heroslender.lgtvcontroller.storage.TvRepository
 import com.github.heroslender.lgtvcontroller.ui.BaseViewModel
 import com.github.heroslender.lgtvcontroller.ui.navigation.NavDest
 import com.github.heroslender.lgtvcontroller.ui.preferences.InputValidator
+import com.github.heroslender.lgtvcontroller.utils.TvProbe
 import com.github.heroslender.lgtvcontroller.utils.WakeOnLan
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
@@ -29,7 +30,8 @@ class TvEditViewModel @Inject constructor(
         TvUiState(
             tvDetails = TvDetails(tvId = "Loading...", tvName = "Loading..."),
             displayNameValidator = this::validateDisplayName,
-            macAddressValidator = this::validateMacAddress
+            macAddressValidator = this::validateMacAddress,
+            ipAddressValidator = this::validateIpAddress
         )
     )
         private set
@@ -40,7 +42,38 @@ class TvEditViewModel @Inject constructor(
      */
     private var loadedTv: Tv? = null
 
+    /** Modes currently active on the TV, null while unknown. Only filled when the TV is connected. */
+    var pictureMode by mutableStateOf<String?>(null)
+        private set
+    var soundMode by mutableStateOf<String?>(null)
+        private set
+    var modesAvailable by mutableStateOf(false)
+        private set
+
+    private var modeDevice: com.github.heroslender.lgtvcontroller.device.Device? = null
+
+    fun changePictureMode(mode: String) {
+        pictureMode = mode
+        modeDevice?.changeSetting("picture", "pictureMode", mode)
+    }
+
+    fun changeSoundMode(mode: String) {
+        soundMode = mode
+        modeDevice?.changeSetting("sound", "soundMode", mode)
+    }
+
     init {
+        // Read the current picture and sound mode from the TV, if it is the one being edited
+        viewModelScope.launch {
+            val id: String = checkNotNull(savedStateHandle[NavDest.EditDevice.tvIdArg])
+            deviceManager.connectedDevice.collect { device ->
+                modeDevice = device?.takeIf { it.id == id }
+                modesAvailable = modeDevice != null
+                modeDevice?.readSetting("picture", "pictureMode") { pictureMode = it }
+                modeDevice?.readSetting("sound", "soundMode") { soundMode = it }
+            }
+        }
+
         viewModelScope.launch {
             val id: String = checkNotNull(savedStateHandle[NavDest.EditDevice.tvIdArg])
             val tv = tvRepository.getTvStream(id).first()
@@ -50,7 +83,10 @@ class TvEditViewModel @Inject constructor(
                 tvName = tv.name,
                 tvDisplayName = tv.displayName ?: tv.name,
                 autoConnect = tv.autoConnect,
+                brightnessControls = tv.brightnessControls,
+                numberPad = tv.numberPad,
                 macAddress = tv.macAddress ?: "",
+                ipAddress = tv.ipAddress ?: "",
                 homeAppId = tv.homeAppId ?: "",
                 okLongPressAction = tv.okLongPressAction ?: ""
             )
@@ -74,6 +110,7 @@ class TvEditViewModel @Inject constructor(
 
     fun validateInput(uiState: TvDetails = tvUiState.tvDetails): Boolean {
         return uiState.tvId != "Loading..." && validateMacAddress(uiState.macAddress) == null
+                && validateIpAddress(uiState.ipAddress) == null
     }
 
     fun validateMacAddress(macAddress: String): String? {
@@ -82,6 +119,15 @@ class TvEditViewModel @Inject constructor(
             null
         } else {
             "Invalid MAC address, expected format: AA:BB:CC:DD:EE:FF"
+        }
+    }
+
+    fun validateIpAddress(ipAddress: String): String? {
+        // Optional, learned automatically the first time the tv is found on the network
+        return if (ipAddress.isBlank() || TvProbe.isValidIpv4(ipAddress)) {
+            null
+        } else {
+            "Invalid IP address, expected format: 192.168.1.20"
         }
     }
 
@@ -102,7 +148,13 @@ class TvEditViewModel @Inject constructor(
                 .let { edited ->
                     // Keep what the editor doesn't know about, otherwise saving would erase the
                     // apps and inputs that were loaded from the tv.
-                    loadedTv?.let { edited.copy(apps = it.apps, inputs = it.inputs) } ?: edited
+                    loadedTv?.let {
+                        edited.copy(
+                            apps = it.apps,
+                            inputs = it.inputs,
+                            serviceUuid = it.serviceUuid,
+                        )
+                    } ?: edited
                 }
 
             deviceManager.updateTv(tv)
@@ -115,6 +167,7 @@ data class TvUiState(
     val displayNameValidator: InputValidator,
     val isValid: Boolean = false,
     val macAddressValidator: InputValidator = { null },
+    val ipAddressValidator: InputValidator = { null },
     val apps: List<App> = emptyList(),
 )
 
@@ -123,7 +176,10 @@ data class TvDetails(
     val tvName: String = "",
     val tvDisplayName: String = "",
     val autoConnect: Boolean = false,
+    val brightnessControls: Boolean = false,
+    val numberPad: Boolean = false,
     val macAddress: String = "",
+    val ipAddress: String = "",
     val homeAppId: String = "",
     val okLongPressAction: String = "",
 )
@@ -133,7 +189,10 @@ fun TvDetails.toTv(): Tv = Tv(
     name = tvName,
     displayName = tvDisplayName,
     autoConnect = autoConnect,
+    brightnessControls = brightnessControls,
+    numberPad = numberPad,
     macAddress = WakeOnLan.normalizeMac(macAddress),
+    ipAddress = ipAddress.trim().ifEmpty { null },
     homeAppId = homeAppId.trim().ifEmpty { null },
     okLongPressAction = okLongPressAction.trim().ifEmpty { null }
 )

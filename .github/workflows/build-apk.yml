@@ -43,6 +43,9 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug
 
+      - name: Check the optimized beta build compiles (R8)
+        run: ./gradlew assembleBeta assembleRelease
+
       - name: Upload the APK
         uses: actions/upload-artifact@v4
         with:

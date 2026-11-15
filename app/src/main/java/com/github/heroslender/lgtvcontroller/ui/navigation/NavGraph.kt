@@ -1,5 +1,9 @@
 package com.github.heroslender.lgtvcontroller.ui.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -9,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.github.heroslender.lgtvcontroller.ui.controller.ControllerScreen
 import com.github.heroslender.lgtvcontroller.ui.devicelist.DeviceListScreen
+import com.github.heroslender.lgtvcontroller.ui.about.AboutScreen
 import com.github.heroslender.lgtvcontroller.ui.editor.TvEditScreen
 import com.github.heroslender.lgtvcontroller.ui.home.HomeScreen
 
@@ -19,18 +24,26 @@ fun ControllerNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = NavDest.DeviceList.route,
-        modifier = modifier
+        startDestination = NavDest.Home.route,
+        modifier = modifier,
+        // Forward: the new screen slides in; back (also the predictive back gesture): the
+        // current one slides away shrinking while the previous one comes back
+        // WikiReader's setup (default specs) plus a slight shrink of the leaving screen
+        enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 4 }) },
+        popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn() },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { it }) + scaleOut(targetScale = 0.9f)
+        },
     ) {
         composable(NavDest.DeviceList.route) {
             DeviceListScreen(
                 navigateToController = {
-                    navController.navigate(NavDest.Home.route) {
-                        popUpTo(NavDest.DeviceList.route) {
-                            inclusive = false
+                    // Back to the remote, which is below the list in the back stack
+                    if (!navController.popBackStack(NavDest.Home.route, false)) {
+                        navController.navigate(NavDest.Home.route) {
+                            popUpTo(NavDest.DeviceList.route) { inclusive = true }
                         }
-
-                        launchSingleTop = true
                     }
                 }
             )
@@ -40,10 +53,13 @@ fun ControllerNavHost(
             HomeScreen(
                 navigateToDeviceList = {
                     navController.navigate(NavDest.DeviceList.route) {
-                        popUpTo(NavDest.Home.route) {
-                            inclusive = true
-                        }
-
+                        launchSingleTop = true
+                    }
+                },
+                navigateToSetup = {
+                    // First use, nothing to show: replace the remote with the device search
+                    navController.navigate(NavDest.DeviceList.route) {
+                        popUpTo(NavDest.Home.route) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
@@ -59,7 +75,7 @@ fun ControllerNavHost(
         composable(NavDest.Controller.route) {
             ControllerScreen(
                 navigateUp = {
-                    navController.navigate(NavDest.Home.route)
+                    navController.popBackStack()
                 },
             )
         }
@@ -74,7 +90,14 @@ fun ControllerNavHost(
                 navigateBack = {
                     navController.popBackStack()
                 },
+                navigateToAbout = {
+                    navController.navigate(NavDest.About.route) { launchSingleTop = true }
+                },
             )
+        }
+
+        composable(NavDest.About.route) {
+            AboutScreen(navigateBack = { navController.popBackStack() })
         }
     }
 }

@@ -47,12 +47,15 @@ object PreviewDevice : Device {
     override fun home() {}
     override fun info() {}
     override fun source() {}
+    override fun adjustBrightness(delta: Int) {}
+    override fun toggleScreen() {}
     override fun menu() {}
     override fun qmenu() {}
     override fun red() {}
     override fun green() {}
     override fun yellow() {}
     override fun blue() {}
+    override fun number(digit: Int) {}
     override fun mouseClick() {}
     override fun moveMouse(x: Double, y: Double) {}
     override fun scroll(x: Double, y: Double) {}

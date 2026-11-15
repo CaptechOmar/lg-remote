@@ -49,7 +49,14 @@ class DeviceListViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // The first value is whatever is connected when the list opens (it is opened on
+            // purpose, e.g. to pick another tv), only a connection made from here counts.
+            var initial = true
             deviceManager.connectedDevice.stateIn(viewModelScope).collect {
+                if (initial) {
+                    initial = false
+                    return@collect
+                }
                 if (it != null) {
                     deviceConnectedListener()
                 }

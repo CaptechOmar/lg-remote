@@ -20,6 +20,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.composed
+import androidx.compose.ui.platform.LocalContext
+import com.github.heroslender.lgtvcontroller.utils.Haptics
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,6 +47,7 @@ import androidx.compose.ui.unit.em
 import com.github.heroslender.lgtvcontroller.ui.theme.LGTVControllerTheme
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 
 val ButtonShape = ShapeDefaults.Large
 val ControlsSpacing = 10.dp
@@ -49,6 +60,7 @@ fun CTextButton(
     shape: Shape = ButtonShape,
     fontSize: TextUnit = 3.7.em,
     repeatOnHold: Boolean = false,
+    onPressedChange: ((Boolean) -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onLongClickRelease: (() -> Unit)? = null,
     onClick: () -> Unit = {},
@@ -58,6 +70,7 @@ fun CTextButton(
         shape = shape,
         modifier = modifier,
         repeatOnHold = repeatOnHold,
+        onPressedChange = onPressedChange,
         onLongClick = onLongClick,
         onLongClickRelease = onLongClickRelease,
         onClick = onClick
@@ -75,6 +88,7 @@ fun CIconButton(
     shape: Shape = ButtonShape,
     useDefaultTint: Boolean = false,
     repeatOnHold: Boolean = false,
+    onPressedChange: ((Boolean) -> Unit)? = null,
     onClick: () -> Unit = {},
 ) {
     val color = if (useDefaultTint) Color.Unspecified else null
@@ -83,6 +97,7 @@ fun CIconButton(
         shape = shape,
         modifier = modifier,
         repeatOnHold = repeatOnHold,
+        onPressedChange = onPressedChange,
         onClick = onClick
     ) {
         if (color == null) {
@@ -107,6 +122,7 @@ fun CIconButton(
     shape: Shape = ButtonShape,
     useDefaultTint: Boolean = false,
     repeatOnHold: Boolean = false,
+    onPressedChange: ((Boolean) -> Unit)? = null,
     onClick: () -> Unit = {},
 ) {
     val color = if (useDefaultTint) Color.Unspecified else null
@@ -115,6 +131,7 @@ fun CIconButton(
         shape = shape,
         modifier = modifier,
         repeatOnHold = repeatOnHold,
+        onPressedChange = onPressedChange,
         onClick = onClick
     ) {
         if (color == null) {
@@ -137,32 +154,28 @@ fun CButton(
     shape: Shape = ButtonShape,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     repeatOnHold: Boolean = false,
+    onPressedChange: ((Boolean) -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onLongClickRelease: (() -> Unit)? = null,
     onClick: () -> Unit,
     content: @Composable RowScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    // The finger really being down. The button's own pressed state can get stuck after quick
+    // repeated taps (the hold-repeat then kept firing), so this is tracked from the raw touches.
+    var isPressed by remember { mutableStateOf(false) }
+    val currentEnabled by rememberUpdatedState(enabled)
     val currentOnClick by rememberUpdatedState(onClick)
+    val currentRepeat by rememberUpdatedState(repeatOnHold)
     // Whether the current press already fired repeats, so releasing doesn't fire one more click
     val repeated = remember { BooleanArray(1) }
     val currentOnLongClick by rememberUpdatedState(onLongClick)
     val currentOnLongClickRelease by rememberUpdatedState(onLongClickRelease)
     val haptics = LocalHapticFeedback.current
-
-    if (repeatOnHold) {
-        LaunchedEffect(isPressed) {
-            if (isPressed) {
-                repeated[0] = false
-                delay(HOLD_REPEAT_DELAY_MS)
-                repeated[0] = true
-                while (true) {
-                    currentOnClick()
-                    delay(HOLD_REPEAT_INTERVAL_MS)
-                }
-            }
-        }
+    val context = LocalContext.current
+    val currentOnPressedChange by rememberUpdatedState(onPressedChange)
+    LaunchedEffect(isPressed) {
+        currentOnPressedChange?.invoke(isPressed)
     }
 
     // A long press runs [onLongClick] once instead of the normal click. It shares the `repeated`
@@ -204,9 +217,100 @@ fun CButton(
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
             disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        modifier = modifier,
+        modifier = modifier.pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                val wasEnabled = currentEnabled
+                if (wasEnabled) {
+                    isPressed = true
+                    // Felt the instant the finger touches, not after the press animation
+                    Haptics.buttonDown(context)
+                }
+                repeated[0] = false
+                try {
+                    // The hold-repeat lives inside the gesture itself, so it ends the moment the
+                    // gesture does (lift, cancel, or the screen going away) and can't get stuck.
+                    var repeating = false
+                    while (true) {
+                        val wait = if (!wasEnabled || !currentRepeat) Long.MAX_VALUE
+                        else if (repeating) HOLD_REPEAT_INTERVAL_MS else HOLD_REPEAT_DELAY_MS
+                        val event = withTimeoutOrNull(wait) {
+                            awaitPointerEvent(PointerEventPass.Initial)
+                        }
+                        if (event == null) {
+                            repeating = true
+                            repeated[0] = true
+                            currentOnClick()
+                        } else if (event.changes.none { it.pressed }) {
+                            break
+                        }
+                    }
+                } finally {
+                    isPressed = false
+                    if (wasEnabled) Haptics.buttonUp(context)
+                }
+            }
+        },
         content = content
     )
+}
+
+/**
+ * Whether a value readout should be visible: while [pressed] and for a moment after it ends, so
+ * even a single tap shows it.
+ */
+@Composable
+fun rememberReadoutVisible(pressed: Boolean, level: Int?): Boolean {
+    var visible by remember { mutableStateOf(false) }
+    var seen by remember { mutableStateOf(level) }
+    var pressedAt by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(pressed) {
+        if (pressed) pressedAt = System.currentTimeMillis()
+    }
+
+    // Only appears once the value changed because of a press, so it never flashes the old value
+    LaunchedEffect(level) {
+        if (level != seen) {
+            seen = level
+            if (pressed || System.currentTimeMillis() - pressedAt < READOUT_CHANGE_WINDOW_MS) {
+                visible = true
+            }
+        }
+    }
+
+    LaunchedEffect(visible, pressed, level) {
+        if (visible && !pressed) {
+            delay(READOUT_LINGER_MS)
+            visible = false
+        }
+    }
+    return visible
+}
+
+/** A value change this soon after a press still counts as caused by it. */
+const val READOUT_CHANGE_WINDOW_MS = 2000L
+
+const val READOUT_LINGER_MS = 500L
+
+/** Physical-button haptics for anything touchable: a click on touch-down, a lighter tick on lift. */
+fun Modifier.touchHaptics(enabled: Boolean = true): Modifier = composed {
+    val context = LocalContext.current
+    val currentEnabled by rememberUpdatedState(enabled)
+    pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            val on = currentEnabled
+            if (on) Haptics.buttonDown(context)
+            try {
+                do {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                } while (event.changes.any { it.pressed })
+            } finally {
+                if (on) Haptics.buttonUp(context)
+            }
+        }
+    }
 }
 
 /** How long a button has to be held before it starts repeating. */
@@ -246,7 +350,9 @@ fun ColorButton(
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
             disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        modifier = modifier.semantics { this.contentDescription = contentDescription },
+        modifier = modifier
+            .touchHaptics(enabled)
+            .semantics { this.contentDescription = contentDescription },
     ) {}
 }
 
@@ -255,6 +361,7 @@ fun RowScope.VerticalControls(
     centerText: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    centerHighlight: Boolean = false,
     topButton: @Composable () -> Unit,
     bottomButton: @Composable () -> Unit,
 ) {
@@ -269,7 +376,8 @@ fun RowScope.VerticalControls(
             Text(
                 text = centerText,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                fontSize = 3.em,
+                fontSize = if (centerHighlight) 5.em else 3.em,
+                fontWeight = if (centerHighlight) androidx.compose.ui.text.font.FontWeight.Bold else null,
             )
 
             bottomButton()

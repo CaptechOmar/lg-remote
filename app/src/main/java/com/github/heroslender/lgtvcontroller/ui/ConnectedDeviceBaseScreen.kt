@@ -123,7 +123,11 @@ fun TextInputBottomBar(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Filled.Keyboard, null)
-        Text("Text Input", modifier = Modifier.padding(start = 8.dp))
+        Icon(Filled.Keyboard, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+        Text(
+            "Text Input",
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.padding(start = 8.dp),
+        )
     }
 }

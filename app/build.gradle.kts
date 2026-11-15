@@ -12,14 +12,14 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.github.heroslender.lgtvcontroller"
+        applicationId = "com.captechomar.lgremote"
         minSdk = 30
         targetSdk = 34
 
         // CI builds count up with the run number so every build (stable or beta) can be installed
         // over the previous one.
         versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.let { 1000 + it } ?: 14
-        versionName = "0.6.0"
+        versionName = "0.7.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -48,12 +48,26 @@ android {
         }
 
         // Same app as the stable one (same package and key), so installing it updates the app.
+        // Built like a release (optimized, not debuggable): a debug build runs Compose several
+        // times slower, which made screen transitions and the back gesture lag.
         create("beta") {
-            initWith(getByName("debug"))
+            initWith(getByName("release"))
             versionNameSuffix = "-beta"
-            if (ciKeystore != null) {
-                signingConfig = signingConfigs.getByName("ci")
+            isDebuggable = false
+            // Set here rather than inherited: initWith copies the release type as it is at this
+            // point, before it is configured below, so the beta was not being shrunk at all
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfig = if (ciKeystore != null) {
+                signingConfigs.getByName("ci")
+            } else {
+                signingConfigs.getByName("debug")
             }
+            matchingFallbacks += listOf("release")
         }
 
         release {
@@ -63,6 +77,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = if (ciKeystore != null) {
+                signingConfigs.getByName("ci")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
     compileOptions {

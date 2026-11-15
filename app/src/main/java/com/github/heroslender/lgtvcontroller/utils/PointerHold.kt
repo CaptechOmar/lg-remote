@@ -29,3 +29,14 @@ fun WebOSTVService.setPointerButtonDown(down: Boolean): Boolean {
         false
     }
 }
+
+/** True if the sdk currently has a pointer socket (the one the arrows and OK are sent through). */
+fun WebOSTVService.hasMouseSocket(): Boolean {
+    return try {
+        val field = WebOSTVService::class.java.getDeclaredField("mouseSocket")
+        field.isAccessible = true
+        field.get(this) != null
+    } catch (e: Exception) {
+        false
+    }
+}

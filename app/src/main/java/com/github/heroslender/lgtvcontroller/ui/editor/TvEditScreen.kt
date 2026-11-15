@@ -1,6 +1,40 @@
 package com.github.heroslender.lgtvcontroller.ui.editor
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.filled.BrightnessHigh
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Dialpad
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.Info as InfoOutlined
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Router
+import androidx.compose.material.icons.filled.SettingsEthernet
+import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material3.MaterialTheme
+import com.github.heroslender.lgtvcontroller.ui.preferences.PreferenceGroup
+import com.github.heroslender.lgtvcontroller.ui.preferences.PreferenceItem
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import com.github.heroslender.lgtvcontroller.ui.preferences.PreferenceSheet
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.platform.LocalContext
+import com.github.heroslender.lgtvcontroller.utils.AppLog
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,6 +107,7 @@ fun TvEditPreview() {
 fun TvEditScreen(
     tvEditViewModel: TvEditViewModel = hiltViewModel(),
     navigateBack: () -> Unit,
+    navigateToAbout: () -> Unit = {},
 ) {
     val textInputState by tvEditViewModel.tvTextInputState.collectAsState()
 
@@ -89,6 +124,12 @@ fun TvEditScreen(
         TvEditBody(
             uiState = tvEditViewModel.tvUiState,
             onValueChange = tvEditViewModel::updateUiState,
+            modesAvailable = tvEditViewModel.modesAvailable,
+            pictureMode = tvEditViewModel.pictureMode,
+            soundMode = tvEditViewModel.soundMode,
+            onPictureMode = tvEditViewModel::changePictureMode,
+            onSoundMode = tvEditViewModel::changeSoundMode,
+            onOpenAbout = navigateToAbout,
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
         )
@@ -100,66 +141,215 @@ fun TvEditBody(
     uiState: TvUiState,
     onValueChange: (TvDetails) -> Unit,
     modifier: Modifier = Modifier,
+    modesAvailable: Boolean = false,
+    pictureMode: String? = null,
+    soundMode: String? = null,
+    onPictureMode: (String) -> Unit = {},
+    onSoundMode: (String) -> Unit = {},
+    onOpenAbout: () -> Unit = {},
 ) {
     val tvDetails = uiState.tvDetails
-    Column(modifier = modifier.padding(15.dp, 10.dp)) {
-        TextPrefence(
-            title = "ID",
-            value = tvDetails.tvId,
-        )
+    val context = LocalContext.current
+    var showMacHelp by remember { mutableStateOf(false) }
+    Column(modifier = modifier.padding(16.dp, 8.dp)) {
+        PreferenceGroup("Connection") {
+            SwitchPrefence(
+                title = "Auto Connect",
+                subtitle = "Automatically connect to this device when the app starts",
+                value = tvDetails.autoConnect,
+                icon = Icons.Filled.Autorenew,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(autoConnect = newValue))
+                }
+            )
 
-        TextPrefence(
-            title = "Name",
-            value = tvDetails.tvName,
-        )
+            TextPrefence(
+                title = stringResource(string.tv_mac_address),
+                value = tvDetails.macAddress,
+                icon = Icons.Filled.SettingsEthernet,
+                inputValidation = uiState.macAddressValidator,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(macAddress = newValue.trim()))
+                },
+                trailing = {
+                    IconButton(onClick = { showMacHelp = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.InfoOutlined,
+                            contentDescription = "How to find the MAC address",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                },
+            )
 
-        TextPrefence(
-            title = "Display name",
-            value = tvDetails.tvDisplayName,
-            inputValidation = uiState.displayNameValidator,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(tvDisplayName = newValue.trim()))
+            if (showMacHelp) {
+                PreferenceSheet(
+                    title = "Finding the MAC address",
+                    onDismiss = { showMacHelp = false },
+                ) { close ->
+                    Text(
+                        text = "The MAC address lets the app wake the TV from standby. On the TV:\n\n" +
+                            "1. Press the Settings button and open All Settings.\n" +
+                            "2. Go to General, then Devices (or Network).\n" +
+                            "3. Open TV Management (or Network Status) and pick your connection, Wi-Fi or Ethernet.\n" +
+                            "4. Look for \"MAC address\" and type it in here, for example A8:23:FE:12:34:56.\n\n" +
+                            "Use the address of the connection the TV uses (Wi-Fi or wired). The names of the menus differ a little between webOS versions, and your router's list of connected devices shows it too.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+                    TextButton(
+                        onClick = close,
+                        modifier = Modifier.align(Alignment.End),
+                    ) { Text("Got it") }
+                }
             }
-        )
 
-        SwitchPrefence(
-            title = "Auto Connect",
-            subtitle = "Automatically connect to this device when the app starts",
-            value = tvDetails.autoConnect,
-            onValueChange = { newValue ->
-                println("Switch changed to $newValue from ${tvDetails.autoConnect}")
-                onValueChange(tvDetails.copy(autoConnect = newValue))
-            }
-        )
+            TextPrefence(
+                title = "TV IP address (for reliable connection)",
+                value = tvDetails.ipAddress,
+                icon = Icons.Filled.Router,
+                inputValidation = uiState.ipAddressValidator,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(ipAddress = newValue.trim()))
+                }
+            )
+        }
 
-        TextPrefence(
-            title = stringResource(string.tv_mac_address),
-            value = tvDetails.macAddress,
-            inputValidation = uiState.macAddressValidator,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(macAddress = newValue.trim()))
-            }
-        )
+        PreferenceGroup("Remapping") {
+            AppPreference(
+                title = stringResource(string.tv_home_button_app),
+                value = tvDetails.homeAppId,
+                apps = uiState.apps,
+                icon = Icons.Filled.Home,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(homeAppId = newValue))
+                }
+            )
 
-        AppPreference(
-            title = stringResource(string.tv_home_button_app),
-            value = tvDetails.homeAppId,
-            apps = uiState.apps,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(homeAppId = newValue))
-            }
-        )
+            ChoicePreference(
+                title = stringResource(string.tv_ok_long_press),
+                value = tvDetails.okLongPressAction,
+                options = OkLongPressOptions,
+                icon = Icons.Filled.TouchApp,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(okLongPressAction = newValue))
+                }
+            )
 
-        ChoicePreference(
-            title = stringResource(string.tv_ok_long_press),
-            value = tvDetails.okLongPressAction,
-            options = OkLongPressOptions,
-            onValueChange = { newValue ->
-                onValueChange(tvDetails.copy(okLongPressAction = newValue))
+            SwitchPrefence(
+                title = "Brightness buttons",
+                subtitle = "Show brightness buttons instead of the channel buttons on the remote",
+                value = tvDetails.brightnessControls,
+                icon = Icons.Filled.BrightnessHigh,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(brightnessControls = newValue))
+                }
+            )
+
+            SwitchPrefence(
+                title = "Number pad",
+                subtitle = "Replace the Exit button with a 123 button that opens a number pad",
+                value = tvDetails.numberPad,
+                icon = Icons.Filled.Dialpad,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(numberPad = newValue))
+                }
+            )
+        }
+
+        PreferenceGroup("TV settings") {
+            if (modesAvailable) {
+                // These change the TV right away, they are not saved in the app
+                ChoicePreference(
+                    title = "Picture mode",
+                    value = pictureMode ?: "",
+                    options = PictureModes,
+                    icon = Icons.Filled.Image,
+                    onValueChange = onPictureMode,
+                )
+
+                ChoicePreference(
+                    title = "Sound mode",
+                    value = soundMode ?: "",
+                    options = SoundModes,
+                    icon = Icons.Filled.MusicNote,
+                    onValueChange = onSoundMode,
+                )
             }
-        )
+
+            TextPrefence(
+                title = "Display name",
+                value = tvDetails.tvDisplayName,
+                icon = Icons.Filled.Edit,
+                inputValidation = uiState.displayNameValidator,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(tvDisplayName = newValue.trim()))
+                }
+            )
+        }
+
+        PreferenceGroup("About") {
+            TextPrefence(
+                title = "TV name",
+                value = tvDetails.tvName,
+                icon = Icons.Filled.Tv,
+            )
+
+            TextPrefence(
+                title = "TV ID",
+                value = tvDetails.tvId,
+                icon = Icons.Filled.Tag,
+            )
+
+            PreferenceItem(
+                title = "About app",
+                subtitle = "Version, source code, credits and more",
+                icon = Icons.Filled.Info,
+                subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = onOpenAbout,
+            )
+        }
+
+        OutlinedButton(
+            onClick = {
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "LG Remote connection log")
+                    putExtra(Intent.EXTRA_TEXT, AppLog.dump())
+                }
+                context.startActivity(Intent.createChooser(send, "Share connection log"))
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Share connection log")
+        }
     }
 }
+
+
+/** Picture modes of recent LG TVs (the TV doesn't list them). Pairs of (webOS value, label). */
+private val PictureModes = listOf(
+    "vivid" to "Vivid",
+    "standard" to "Standard",
+    "eco" to "Eco",
+    "cinema" to "Cinema",
+    "expert1" to "Expert (Bright Room)",
+    "expert2" to "Expert (Dark Room)",
+    "game" to "Game Optimizer",
+    "filmMaker" to "Filmmaker Mode",
+    "sports" to "Sports",
+)
+
+private val SoundModes = listOf(
+    "standard" to "Standard",
+    "movie" to "Movie",
+    "music" to "Music",
+    "sports" to "Sports",
+    "game" to "Game",
+    "news" to "News",
+    "aiSoundPlus" to "AI Sound+",
+)
 
 /**
  * What a long press on OK can do. The TV can't be sent a "held" key, so a long press sends a

@@ -44,15 +44,30 @@ interface Device {
             DeviceControllerButton.EXIT,
                 -> return hasCapability(KeyControl.Back)
 
+            DeviceControllerButton.BRIGHTNESS_UP,
+            DeviceControllerButton.BRIGHTNESS_DOWN,
+                -> return hasCapability(KeyControl.Any)
+
             DeviceControllerButton.HOME -> return hasCapability(KeyControl.Home)
             DeviceControllerButton.INFO -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.SOURCE -> return hasCapability(ExternalInputControl.Any)
+            DeviceControllerButton.SCREEN_OFF -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.MENU -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.QMENU -> return hasCapability(KeyControl.Any)
             DeviceControllerButton.RED,
             DeviceControllerButton.GREEN,
             DeviceControllerButton.YELLOW,
             DeviceControllerButton.BLUE,
+            DeviceControllerButton.NUM_0,
+            DeviceControllerButton.NUM_1,
+            DeviceControllerButton.NUM_2,
+            DeviceControllerButton.NUM_3,
+            DeviceControllerButton.NUM_4,
+            DeviceControllerButton.NUM_5,
+            DeviceControllerButton.NUM_6,
+            DeviceControllerButton.NUM_7,
+            DeviceControllerButton.NUM_8,
+            DeviceControllerButton.NUM_9,
                 -> return hasCapability(KeyControl.Any)
         }
     }
@@ -67,6 +82,8 @@ interface Device {
             DeviceControllerButton.MUTE -> mute()
             DeviceControllerButton.CHANNEL_UP -> channelUp()
             DeviceControllerButton.CHANNEL_DOWN -> channelDown()
+            DeviceControllerButton.BRIGHTNESS_UP -> adjustBrightness(BRIGHTNESS_STEP)
+            DeviceControllerButton.BRIGHTNESS_DOWN -> adjustBrightness(-BRIGHTNESS_STEP)
             DeviceControllerButton.UP -> up()
             DeviceControllerButton.DOWN -> down()
             DeviceControllerButton.LEFT -> left()
@@ -79,14 +96,33 @@ interface Device {
             DeviceControllerButton.HOME -> home()
             DeviceControllerButton.INFO -> info()
             DeviceControllerButton.SOURCE -> source()
+            DeviceControllerButton.SCREEN_OFF -> toggleScreen()
             DeviceControllerButton.MENU -> menu()
             DeviceControllerButton.QMENU -> qmenu()
             DeviceControllerButton.RED -> red()
             DeviceControllerButton.GREEN -> green()
             DeviceControllerButton.YELLOW -> yellow()
             DeviceControllerButton.BLUE -> blue()
+            DeviceControllerButton.NUM_0 -> number(0)
+            DeviceControllerButton.NUM_1 -> number(1)
+            DeviceControllerButton.NUM_2 -> number(2)
+            DeviceControllerButton.NUM_3 -> number(3)
+            DeviceControllerButton.NUM_4 -> number(4)
+            DeviceControllerButton.NUM_5 -> number(5)
+            DeviceControllerButton.NUM_6 -> number(6)
+            DeviceControllerButton.NUM_7 -> number(7)
+            DeviceControllerButton.NUM_8 -> number(8)
+            DeviceControllerButton.NUM_9 -> number(9)
         }
     }
+
+    /** Reads a TV system setting (e.g. picture/pictureMode), null if it couldn't be read. */
+    fun readSetting(category: String, key: String, onResult: (String?) -> Unit) {
+        onResult(null)
+    }
+
+    /** Changes a TV system setting (e.g. picture/pictureMode). */
+    fun changeSetting(category: String, key: String, value: String) {}
 
     fun powerOff()
 
@@ -99,6 +135,9 @@ interface Device {
     fun channelUp()
 
     fun channelDown()
+
+    /** Changes the screen brightness (backlight) by [delta] percentage points. */
+    fun adjustBrightness(delta: Int)
 
     fun up()
 
@@ -124,7 +163,11 @@ interface Device {
 
     fun info()
 
+    /** Opens the TV's input picker. */
     fun source()
+
+    /** Turns the screen off (the TV stays on), or back on if it was turned off from here. */
+    fun toggleScreen()
 
     fun menu()
 
@@ -137,6 +180,9 @@ interface Device {
     fun yellow()
 
     fun blue()
+
+    /** A digit key (0-9) of the remote. */
+    fun number(digit: Int)
 
     fun launchNetflix()
 
@@ -155,3 +201,6 @@ interface Device {
     fun disconnect()
     fun updateStatus(status: DeviceStatus)
 }
+
+/** How much one press of a brightness button changes the brightness, in percentage points. */
+const val BRIGHTNESS_STEP = 5

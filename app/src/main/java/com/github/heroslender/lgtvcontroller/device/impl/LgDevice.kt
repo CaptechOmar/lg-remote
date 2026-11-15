@@ -1,6 +1,6 @@
 package com.github.heroslender.lgtvcontroller.device.impl
 
-import android.util.Log
+import com.github.heroslender.lgtvcontroller.utils.AppLog
 import com.connectsdk.core.AppInfo
 import com.connectsdk.core.ExternalInputInfo
 import com.connectsdk.core.TextInputStatusInfo
@@ -21,10 +21,16 @@ import com.github.heroslender.lgtvcontroller.domain.model.App
 import com.github.heroslender.lgtvcontroller.domain.model.Input
 import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
+import com.github.heroslender.lgtvcontroller.utils.lunaRequest
+import com.github.heroslender.lgtvcontroller.utils.sendRequest
+import com.github.heroslender.lgtvcontroller.utils.WakeOnLan
+import com.github.heroslender.lgtvcontroller.utils.sendRequestAny
 import com.github.heroslender.lgtvcontroller.utils.sendSpecialKey
+import com.github.heroslender.lgtvcontroller.utils.setScreenPower
 import com.github.heroslender.lgtvcontroller.utils.setPointerButtonDown
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -54,6 +61,8 @@ class LgDevice(
             apps = tv.apps,
             inputs = tv.inputs,
             isKeyboardOpen = false,
+            brightnessControls = tv.brightnessControls,
+            numberPad = tv.numberPad,
         )
     )
     override val state: StateFlow<DeviceState>
@@ -97,17 +106,44 @@ class LgDevice(
                 }
             } ?: false
         } catch (e: Exception) {
-            Log.w("LgDevice", "Heartbeat failed: ${e.message}")
+            AppLog.w("LgDevice", "Heartbeat failed: ${e.message}")
             false
         }
     }
 
+    private var volumeRefreshJob: kotlinx.coroutines.Job? = null
+
+    /** Reads the volume from the TV once presses have settled, to correct the shown value. */
+    private fun refreshVolume(delayMs: Long = 400) {
+        volumeRefreshJob?.cancel()
+        volumeRefreshJob = scope.launch {
+            delay(delayMs)
+            service.sendRequestAny(listOf("ssap://audio/getVolume"), JSONObject()) { error, response ->
+                val payload = response as? JSONObject
+                val level = (payload?.optJSONObject("volumeStatus") ?: payload)
+                    ?.opt("volume")?.toString()?.toDoubleOrNull()?.toInt()
+                if (error == null && level != null) {
+                    _state.update { it.copy(volume = level) }
+                }
+            }
+        }
+    }
+
+    private fun nudgeVolume(delta: Int) {
+        // Show the new value right away, the TV's answer corrects it afterwards
+        _state.update { s -> s.copy(volume = s.volume?.plus(delta)?.coerceIn(0, 100)) }
+    }
+
     override fun volumeUp() {
+        nudgeVolume(+1)
         service.volumeUp()
+        refreshVolume()
     }
 
     override fun volumeDown() {
+        nudgeVolume(-1)
         service.volumeDown()
+        refreshVolume()
     }
 
     override fun mute() {
@@ -198,7 +234,143 @@ class LgDevice(
     }
 
     override fun source() {
-        service.getExternalInputList(null)
+        // The remote's Input key opens the TV's input picker (launching the picker app directly
+        // is refused with "Application error")
+        try {
+            service.sendSpecialKey("INPUT_HUB")
+        } catch (e: Exception) {
+            AppLog.e("LgDevice", "Input key failed: ${e.message}")
+            scope.launch {
+                _errors.emit(Snackbar.error("Couldn't open the input picker", e.message))
+            }
+        }
+    }
+
+    @Volatile
+    private var backlight: Int? = null
+    private var backlightReadAt = 0L
+    private var pendingBrightness = 0
+    private var readingBacklight = false
+
+    override fun adjustBrightness(delta: Int) {
+        val now = System.currentTimeMillis()
+        val current = backlight
+        if (current != null && now - backlightReadAt >= BACKLIGHT_CACHE_MS) {
+            // Possibly out of date, but show the likely result at once; the fresh read corrects it
+            _state.update { it.copy(brightness = (current + delta).coerceIn(0, 100)) }
+        }
+        if (current != null && now - backlightReadAt < BACKLIGHT_CACHE_MS) {
+            // Known, so holding the button can send changes as fast as it repeats
+            setBacklight((current + delta).coerceIn(0, 100))
+            return
+        }
+
+        // Unknown (or maybe changed with the TV's own remote): read it first. Presses made
+        // meanwhile are added up and applied together.
+        synchronized(this) {
+            pendingBrightness += delta
+            if (readingBacklight) return
+            readingBacklight = true
+        }
+
+        val payload = JSONObject()
+            .put("category", "picture")
+            .put("keys", JSONArray().put("backlight"))
+        service.sendRequestAny(SETTINGS_GET, payload) { error, response ->
+            val value = (response as? JSONObject)
+                ?.optJSONObject("settings")
+                ?.opt("backlight")
+                ?.toString()
+                ?.toDoubleOrNull()
+                ?.toInt()
+
+            val pending = synchronized(this) {
+                readingBacklight = false
+                pendingBrightness.also { pendingBrightness = 0 }
+            }
+
+            if (error != null || value == null) {
+                AppLog.e("LgDevice", "Couldn't read the brightness: ${error?.message ?: response}")
+                scope.launch {
+                    _errors.emit(Snackbar.error("Couldn't read the brightness", error?.message))
+                }
+            } else {
+                setBacklight((value + pending).coerceIn(0, 100))
+            }
+        }
+    }
+
+    private fun setBacklight(value: Int) {
+        backlight = value
+        _state.update { it.copy(brightness = value) }
+        backlightReadAt = System.currentTimeMillis()
+
+        val payload = JSONObject()
+            .put("category", "picture")
+            .put("settings", JSONObject().put("energySaving", "off").put("backlight", value.toString()))
+        // Newer webOS versions don't accept the settings call over the websocket ("no such
+        // service or method"), but the internal settings service can be reached through an alert.
+        service.lunaRequest("com.webos.settingsservice/setSystemSettings", payload) { lunaError ->
+            if (lunaError == null) return@lunaRequest
+
+            AppLog.w("LgDevice", "Settings via luna failed (${lunaError.message}), trying the direct call")
+            service.sendRequestAny(SETTINGS_SET, payload) { error, _ ->
+                if (error != null) {
+                    backlight = null
+                    AppLog.e("LgDevice", "Couldn't set the brightness: ${error.message}")
+                    scope.launch {
+                        _errors.emit(Snackbar.error("Couldn't change the brightness", error.message))
+                    }
+                }
+            }
+        }
+    }
+
+    @Volatile
+    private var screenOff = false
+
+    override fun readSetting(category: String, key: String, onResult: (String?) -> Unit) {
+        val payload = JSONObject()
+            .put("category", category)
+            .put("keys", JSONArray().put(key))
+        service.sendRequestAny(SETTINGS_GET, payload) { error, response ->
+            val value = (response as? JSONObject)?.optJSONObject("settings")?.opt(key)?.toString()
+            if (error != null || value == null) {
+                AppLog.w("LgDevice", "Couldn't read $category/$key: ${error?.message ?: response}")
+                onResult(null)
+            } else {
+                onResult(value)
+            }
+        }
+    }
+
+    override fun changeSetting(category: String, key: String, value: String) {
+        val payload = JSONObject()
+            .put("category", category)
+            .put("settings", JSONObject().put(key, value))
+        service.lunaRequest("com.webos.settingsservice/setSystemSettings", payload) { error ->
+            if (error != null) {
+                AppLog.e("LgDevice", "Couldn't set $category/$key: ${error.message}")
+                scope.launch {
+                    _errors.emit(Snackbar.error("Couldn't change the setting", error.message))
+                }
+            }
+        }
+    }
+
+    override fun toggleScreen() {
+        val turnOn = screenOff
+        screenOff = !turnOn
+        service.setScreenPower(turnOn) { error ->
+            if (error != null) {
+                // It didn't work, the screen is still as it was
+                screenOff = turnOn
+                AppLog.e("LgDevice", "Screen power failed: ${error.message}")
+                scope.launch {
+                    _errors.emit(Snackbar.error("Couldn't change the screen", error.message))
+                }
+            }
+        }
     }
 
     override fun menu() {
@@ -223,6 +395,10 @@ class LgDevice(
 
     override fun blue() {
         service.sendSpecialKey("BLUE")
+    }
+
+    override fun number(digit: Int) {
+        service.sendSpecialKey(digit.toString())
     }
 
     override fun launchNetflix() = launchApp("netflix")
@@ -423,7 +599,7 @@ class LgDevice(
         } catch (e: Exception) {
             tv.inputs = emptyList()
             _state.update { it.copy(inputs = emptyList()) }
-            Log.e("LgDevice", "Failed to load inputs: ${e.message}")
+            AppLog.e("LgDevice", "Failed to load inputs: ${e.message}")
             _errors.emit(Snackbar.error("Failed to load inputs", e.message))
         }
 
@@ -434,28 +610,90 @@ class LgDevice(
         } catch (e: Exception) {
             tv.apps = emptyList()
             _state.update { it.copy(apps = emptyList()) }
-            Log.e("LgDevice", "Failed to load apps: ${e.message}")
+            AppLog.e("LgDevice", "Failed to load apps: ${e.message}")
             _errors.emit(Snackbar.error("Failed to load apps", e.message))
         }
 
         manager.updateTv(tv)
+        autofillMacAddress()
 
         try {
             subscribeRunningApp()
         } catch (e: Exception) {
-            Log.e("LgDevice", "Failed to subscribe to running app: ${e.message}")
+            AppLog.e("LgDevice", "Failed to subscribe to running app: ${e.message}")
             _errors.emit(Snackbar.error("Failed to subscribe to running app", e.message))
+        }
+
+        refreshVolume(0)
+        if (tv.brightnessControls) {
+            readSetting("picture", "backlight") { value ->
+                value?.toDoubleOrNull()?.toInt()?.let { level ->
+                    backlight = level
+                    backlightReadAt = System.currentTimeMillis()
+                    _state.update { it.copy(brightness = level) }
+                }
+            }
         }
 
         try {
             subscribeTextInputListener()
         } catch (e: Exception) {
-            Log.e("LgDevice", "Failed to subscribe to text input: ${e.message}")
+            AppLog.e("LgDevice", "Failed to subscribe to text input: ${e.message}")
             _errors.emit(Snackbar.error("Failed to subscribe to text input", e.message))
         }
     }
 
+    /**
+     * Asks the tv for its own MAC address the first time, so Wake-on-LAN works without typing it.
+     * The Wi-Fi and the wired adapter both report one: the connected one wins.
+     */
+    private fun autofillMacAddress() {
+        if (!tv.macAddress.isNullOrBlank()) return
+
+        service.sendRequestAny(
+            listOf("ssap://com.webos.service.connectionmanager/getinfo"),
+            JSONObject(),
+        ) { error, response ->
+            val payload = response as? JSONObject
+            if (error != null || payload == null) {
+                AppLog.w("LgDevice", "Couldn't read the MAC address: ${error?.message ?: response}")
+            } else {
+                val found = listOf("wifiInfo", "wiredInfo").mapNotNull { key ->
+                    val info = payload.optJSONObject(key) ?: return@mapNotNull null
+                    val mac = info.optString("macAddress").takeIf { it.isNotBlank() }
+                        ?.let { WakeOnLan.normalizeMac(it) }
+                        ?: return@mapNotNull null
+                    mac to info.optString("state").equals("connected", ignoreCase = true)
+                }
+                val mac = (found.firstOrNull { it.second } ?: found.firstOrNull())?.first
+                if (mac != null && tv.macAddress.isNullOrBlank()) {
+                    AppLog.d("LgDevice", "Filled in the MAC address from the tv: $mac")
+                    tv.macAddress = mac
+                    manager.updateTv(tv)
+                }
+            }
+        }
+    }
+
     fun updateDisplayName() {
-        _state.update { it.copy(displayName = tv.displayName) }
+        _state.update {
+            it.copy(
+                displayName = tv.displayName,
+                brightnessControls = tv.brightnessControls,
+                numberPad = tv.numberPad,
+            )
+        }
     }
 }
+
+private const val BACKLIGHT_CACHE_MS = 20_000L
+
+private val SETTINGS_GET = listOf(
+    "ssap://settings/getSystemSettings",
+    "ssap://com.webos.settingsservice/getSystemSettings",
+)
+
+private val SETTINGS_SET = listOf(
+    "ssap://settings/setSystemSettings",
+    "ssap://com.webos.settingsservice/setSystemSettings",
+)

@@ -1,6 +1,14 @@
-<img src=".github/assets/icon.png" alt="LG TV Controller" title="LG TV Controller" align="right"/>
+<p align="center">
+  <img src=".github/assets/icon.png" alt="LG TV Controller" title="LG TV Controller" width="96"/>
+</p>
 
-## LG TV Controller
+<h2 align="center">LG TV Controller</h2>
+
+<p align="center">
+  <a href="https://github.com/CaptechOmar/lg-remote/releases/latest/download/lg-remote.apk">
+    <img src=".github/assets/badge_github.png" alt="Get it on GitHub" height="80"/>
+  </a>
+</p>
 
 [![GitHub stars](https://img.shields.io/github/stars/heroslender/lg-remote.svg)](https://github.com/heroslender/lg-remote/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues-raw/heroslender/lg-remote.svg?label=issues)](https://github.com/heroslender/lg-remote/issues)
@@ -55,3 +63,8 @@ Light Theme                |  Dark Theme
 :-------------------------:|:-------------------------:
 ![Settings light theme](.github/assets/tv_settings.jpeg)  |  ![Settings dark theme](.github/assets/tv_settings_dark.jpeg)
 
+### Credits
+
+* App icon based on the [remote control icon](https://www.flaticon.com/free-icon/remote-control_18091280)
+  by [cah nggunung](https://www.flaticon.com/authors/cah-nggunung) from [Flaticon](https://www.flaticon.com/),
+  edited for this app. Icons created by cah nggunung - Flaticon.

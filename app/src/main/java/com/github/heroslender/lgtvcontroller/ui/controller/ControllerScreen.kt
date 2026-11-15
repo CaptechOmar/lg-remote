@@ -1,9 +1,23 @@
 package com.github.heroslender.lgtvcontroller.ui.controller
 
+import com.github.heroslender.lgtvcontroller.utils.Haptics
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable2D
 import androidx.compose.foundation.gestures.rememberDraggable2DState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.background
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -20,6 +34,9 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrightnessHigh
+import androidx.compose.material.icons.filled.BrightnessLow
+import androidx.compose.material.icons.filled.TvOff
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.filled.KeyboardAlt
 import androidx.compose.material3.ElevatedCard
@@ -153,6 +170,10 @@ fun ControllerScreen(
                 scroll = controllerUiState.scroll,
                 hasCapability = controllerUiState.hasCapability,
                 executeButton = controllerUiState.executeButton,
+                brightnessControls = controllerUiState.brightnessControls,
+                numberPad = controllerUiState.numberPad,
+                volume = controllerUiState.volume,
+                brightness = controllerUiState.brightness,
             )
         }
     }
@@ -202,6 +223,7 @@ fun Header(
 
             Row(horizontalArrangement = Arrangement.Absolute.Right) {
                 FilledIconButton(
+                    modifier = Modifier.touchHaptics(),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer
                     ),
@@ -226,6 +248,7 @@ fun PowerButton(
 ) {
     if (hasPowerCapability) {
         FilledIconButton(
+            modifier = Modifier.touchHaptics(),
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = colorResource(R.color.power)
             ),
@@ -249,11 +272,21 @@ fun ColumnScope.Controls(
     scroll: (Double, Double) -> Unit,
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
+    brightnessControls: Boolean = false,
+    numberPad: Boolean = false,
+    volume: Int? = null,
+    brightness: Int? = null,
 ) {
+    val context = LocalContext.current
+    var showNumbers by remember { mutableStateOf(false) }
+    // The colored buttons are pinned to the bottom, so they stay in the same place whichever
+    // layout (normal, touchpad, numbers) is showing above them
+    Column(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .fillMaxWidth()
+            .weight(1F)
+            .then(if (trackpadEnabled) Modifier else Modifier.verticalScroll(rememberScrollState()))
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
@@ -265,6 +298,7 @@ fun ColumnScope.Controls(
             VolumeControls(
                 hasCapability = hasCapability,
                 executeButton = executeButton,
+                level = volume,
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1F),
@@ -277,14 +311,14 @@ fun ColumnScope.Controls(
                     .weight(1F)
             ) {
                 CIconButton(
-                    iconId = R.drawable.baseline_input_24,
-                    contentDescription = stringResource(string.source_button),
-                    enabled = hasCapability(DeviceControllerButton.SOURCE),
+                    imageVector = Icons.Filled.TvOff,
+                    contentDescription = stringResource(string.screen_off_button),
+                    enabled = hasCapability(DeviceControllerButton.SCREEN_OFF),
                     modifier = Modifier
                         .aspectRatio(1F, true)
                         .weight(1F),
                 ) {
-                    executeButton(DeviceControllerButton.SOURCE)
+                    executeButton(DeviceControllerButton.SCREEN_OFF)
                 }
 
                 CIconButton(
@@ -299,31 +333,132 @@ fun ColumnScope.Controls(
                 }
             }
 
-            ChannelControls(
-                hasCapability = hasCapability,
-                executeButton = executeButton,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .weight(1F),
-            )
+            if (brightnessControls) {
+                BrightnessControls(
+                    hasCapability = hasCapability,
+                    executeButton = executeButton,
+                    level = brightness,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1F),
+                )
+            } else {
+                ChannelControls(
+                    hasCapability = hasCapability,
+                    executeButton = executeButton,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1F),
+                )
+            }
         }
 
         if (trackpadEnabled) {
-            ElevatedCard(
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+                modifier = Modifier
+                    .height(IntrinsicSize.Min)
+                    .fillMaxWidth()
+            ) {
+                CIconButton(
+                    iconId = R.drawable.baseline_arrow_back_24,
+                    contentDescription = stringResource(string.back_button),
+                    enabled = hasCapability(DeviceControllerButton.BACK),
+                    modifier = Modifier
+                        .aspectRatio(1F, true)
+                        .weight(1F)
+                        .padding(bottom = ControlsSpacing),
+                ) {
+                    executeButton(DeviceControllerButton.BACK)
+                }
+
+                CIconButton(
+                    iconId = R.drawable.baseline_home_24,
+                    contentDescription = stringResource(string.home_button),
+                    enabled = hasCapability(DeviceControllerButton.HOME),
+                    modifier = Modifier
+                        .aspectRatio(1F, true)
+                        .weight(1F)
+                        .padding(bottom = ControlsSpacing),
+                ) {
+                    executeButton(DeviceControllerButton.HOME)
+                }
+
+                CIconButton(
+                    iconId = R.drawable.baseline_settings_24,
+                    contentDescription = stringResource(string.settings_button),
+                    enabled = hasCapability(DeviceControllerButton.QMENU),
+                    modifier = Modifier
+                        .aspectRatio(1F, true)
+                        .weight(1F)
+                        .padding(bottom = ControlsSpacing),
+                ) {
+                    executeButton(DeviceControllerButton.QMENU)
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1F)
-                    .padding(bottom = 8.dp)
-                    .draggable2D(
-                        state = rememberDraggable2DState { delta ->
-                            moveMouse(delta.x.toDouble(), delta.y.toDouble())
-                        },
-                    )
-                    .clickable(onClick = {
-                        clickMouse()
-                    })
-            ) {}
+                    .weight(1F),
+            ) {
+                // Rounder at rest, the corners relax a little while a finger is on it
+                var touching by remember { mutableStateOf(false) }
+                val corner by animateDpAsState(
+                    targetValue = if (touching) 14.dp else 25.dp,
+                    animationSpec = spring(dampingRatio = 0.7f, stiffness = 500f),
+                    label = "touchpadCorner",
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(corner))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                                touching = true
+                                try {
+                                    do {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                    } while (event.changes.any { it.pressed })
+                                } finally {
+                                    touching = false
+                                }
+                            }
+                        }
+                        .draggable2D(
+                            state = rememberDraggable2DState { delta ->
+                                moveMouse(delta.x.toDouble(), delta.y.toDouble())
+                            },
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {
+                                // Only a real tap clicks (not moving the pointer), so only it gets a haptic
+                                Haptics.buttonDown(context)
+                                clickMouse()
+                            },
+                        )
+                )
 
+                // The scroll wheel of the remote, a separate strip instead of a two-finger swipe
+                ScrollWheel(
+                    onScroll = { dy -> scroll(0.0, dy) },
+                    modifier = Modifier
+                        .width(56.dp)
+                        .fillMaxHeight(),
+                )
+            }
+        } else if (numberPad && showNumbers) {
+            NumberPad(
+                hasCapability = hasCapability,
+                executeButton = executeButton,
+                showDirections = { showNumbers = false },
+            )
         } else {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
@@ -455,69 +590,32 @@ fun ColumnScope.Controls(
                     executeButton(DeviceControllerButton.DOWN)
                 }
 
-                CTextButton(
-                    text = "Exit",
-                    enabled = hasCapability(DeviceControllerButton.EXIT),
-                    modifier = Modifier
-                        .aspectRatio(1F, true)
-                        .weight(1F)
-                        .padding(top = ControlsSpacing),
-                ) {
-                    executeButton(DeviceControllerButton.EXIT)
-                }
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = ColorButtonTopSpacing)
-                    .height(ColorButtonHeight)
-            ) {
-                ColorButton(
-                    color = ColorButtonRed,
-                    contentDescription = stringResource(string.red_button),
-                    enabled = hasCapability(DeviceControllerButton.RED),
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                ) {
-                    executeButton(DeviceControllerButton.RED)
-                }
-
-                ColorButton(
-                    color = ColorButtonGreen,
-                    contentDescription = stringResource(string.green_button),
-                    enabled = hasCapability(DeviceControllerButton.GREEN),
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                ) {
-                    executeButton(DeviceControllerButton.GREEN)
-                }
-
-                ColorButton(
-                    color = ColorButtonYellow,
-                    contentDescription = stringResource(string.yellow_button),
-                    enabled = hasCapability(DeviceControllerButton.YELLOW),
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                ) {
-                    executeButton(DeviceControllerButton.YELLOW)
-                }
-
-                ColorButton(
-                    color = ColorButtonBlue,
-                    contentDescription = stringResource(string.blue_button),
-                    enabled = hasCapability(DeviceControllerButton.BLUE),
-                    modifier = Modifier
-                        .weight(1F)
-                        .fillMaxHeight(),
-                ) {
-                    executeButton(DeviceControllerButton.BLUE)
+                if (numberPad) {
+                    CTextButton(
+                        text = "123",
+                        modifier = Modifier
+                            .aspectRatio(1F, true)
+                            .weight(1F)
+                            .padding(top = ControlsSpacing),
+                    ) {
+                        showNumbers = true
+                    }
+                } else {
+                    CTextButton(
+                        text = "Exit",
+                        enabled = hasCapability(DeviceControllerButton.EXIT),
+                        modifier = Modifier
+                            .aspectRatio(1F, true)
+                            .weight(1F)
+                            .padding(top = ControlsSpacing),
+                    ) {
+                        executeButton(DeviceControllerButton.EXIT)
+                    }
                 }
             }
         }
+    }
+    ColorButtonsRow(hasCapability, executeButton)
     }
 }
 
@@ -526,10 +624,15 @@ fun RowScope.VolumeControls(
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
     modifier: Modifier = Modifier,
+    level: Int? = null,
 ) {
     val isEnabled = hasCapability(DeviceControllerButton.VOLUME_UP)
+    var upPressed by remember { mutableStateOf(false) }
+    var downPressed by remember { mutableStateOf(false) }
+    val showLevel = rememberReadoutVisible(upPressed || downPressed, level) && level != null
     VerticalControls(
-        centerText = stringResource(string.volume_controls),
+        centerText = if (showLevel) level.toString() else stringResource(string.volume_controls),
+        centerHighlight = showLevel,
         modifier = modifier,
         enabled = isEnabled,
         topButton = {
@@ -537,6 +640,7 @@ fun RowScope.VolumeControls(
                 text = stringResource(string.volume_up_button),
                 fontSize = 6.em,
                 repeatOnHold = true,
+                onPressedChange = { upPressed = it },
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
@@ -550,12 +654,61 @@ fun RowScope.VolumeControls(
                 text = stringResource(string.volume_down_button),
                 fontSize = 6.em,
                 repeatOnHold = true,
+                onPressedChange = { downPressed = it },
                 enabled = isEnabled,
                 modifier = Modifier
                     .weight(1F)
                     .fillMaxWidth(),
             ) {
                 executeButton(DeviceControllerButton.VOLUME_DOWN)
+            }
+        }
+    )
+}
+
+/** Replaces the channel buttons when the TV's "brightness buttons" setting is on. */
+@Composable
+fun RowScope.BrightnessControls(
+    hasCapability: (DeviceControllerButton) -> Boolean,
+    executeButton: (DeviceControllerButton) -> Unit,
+    modifier: Modifier = Modifier,
+    level: Int? = null,
+) {
+    val isEnabled = hasCapability(DeviceControllerButton.BRIGHTNESS_UP)
+    var upPressed by remember { mutableStateOf(false) }
+    var downPressed by remember { mutableStateOf(false) }
+    val showLevel = rememberReadoutVisible(upPressed || downPressed, level) && level != null
+    VerticalControls(
+        centerText = if (showLevel) level.toString() else stringResource(string.brightness_controls),
+        centerHighlight = showLevel,
+        modifier = modifier,
+        enabled = isEnabled,
+        topButton = {
+            CIconButton(
+                imageVector = Icons.Filled.BrightnessHigh,
+                contentDescription = stringResource(string.brightness_up_button),
+                repeatOnHold = true,
+                onPressedChange = { upPressed = it },
+                enabled = isEnabled,
+                modifier = Modifier
+                    .weight(1F)
+                    .fillMaxWidth()
+            ) {
+                executeButton(DeviceControllerButton.BRIGHTNESS_UP)
+            }
+        },
+        bottomButton = {
+            CIconButton(
+                imageVector = Icons.Filled.BrightnessLow,
+                contentDescription = stringResource(string.brightness_down_button),
+                repeatOnHold = true,
+                onPressedChange = { downPressed = it },
+                enabled = isEnabled,
+                modifier = Modifier
+                    .weight(1F)
+                    .fillMaxWidth()
+            ) {
+                executeButton(DeviceControllerButton.BRIGHTNESS_DOWN)
             }
         }
     )
@@ -601,3 +754,139 @@ fun RowScope.ChannelControls(
     )
 }
 
+
+
+@Composable
+private fun ColorButtonsRow(
+    hasCapability: (DeviceControllerButton) -> Boolean,
+    executeButton: (DeviceControllerButton) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = ColorButtonTopSpacing)
+            .height(ColorButtonHeight)
+    ) {
+        ColorButton(
+            color = ColorButtonRed,
+            contentDescription = stringResource(string.red_button),
+            enabled = hasCapability(DeviceControllerButton.RED),
+            modifier = Modifier
+                .weight(1F)
+                .fillMaxHeight(),
+        ) {
+            executeButton(DeviceControllerButton.RED)
+        }
+
+        ColorButton(
+            color = ColorButtonGreen,
+            contentDescription = stringResource(string.green_button),
+            enabled = hasCapability(DeviceControllerButton.GREEN),
+            modifier = Modifier
+                .weight(1F)
+                .fillMaxHeight(),
+        ) {
+            executeButton(DeviceControllerButton.GREEN)
+        }
+
+        ColorButton(
+            color = ColorButtonYellow,
+            contentDescription = stringResource(string.yellow_button),
+            enabled = hasCapability(DeviceControllerButton.YELLOW),
+            modifier = Modifier
+                .weight(1F)
+                .fillMaxHeight(),
+        ) {
+            executeButton(DeviceControllerButton.YELLOW)
+        }
+
+        ColorButton(
+            color = ColorButtonBlue,
+            contentDescription = stringResource(string.blue_button),
+            enabled = hasCapability(DeviceControllerButton.BLUE),
+            modifier = Modifier
+                .weight(1F)
+                .fillMaxHeight(),
+        ) {
+            executeButton(DeviceControllerButton.BLUE)
+        }
+    }
+}
+
+
+private val NumberButtons = listOf(
+    DeviceControllerButton.NUM_1, DeviceControllerButton.NUM_2, DeviceControllerButton.NUM_3,
+    DeviceControllerButton.NUM_4, DeviceControllerButton.NUM_5, DeviceControllerButton.NUM_6,
+    DeviceControllerButton.NUM_7, DeviceControllerButton.NUM_8, DeviceControllerButton.NUM_9,
+)
+
+/**
+ * The number pad that replaces the arrows and OK: 1-9, then a row with the way back to the arrows,
+ * 0 and OK.
+ */
+@Composable
+private fun NumberPad(
+    hasCapability: (DeviceControllerButton) -> Boolean,
+    executeButton: (DeviceControllerButton) -> Unit,
+    showDirections: () -> Unit,
+) {
+    // Four rows in the room three square ones take
+    val ratio = 1.33F
+    Column(verticalArrangement = Arrangement.spacedBy(ControlsSpacing)) {
+        NumberButtons.chunked(3).forEach { row ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                row.forEach { button ->
+                    CTextButton(
+                        text = button.name.removePrefix("NUM_"),
+                        fontSize = 6.em,
+                        enabled = hasCapability(button),
+                        modifier = Modifier
+                            .weight(1F)
+                            .aspectRatio(ratio),
+                    ) {
+                        executeButton(button)
+                    }
+                }
+            }
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            CTextButton(
+                text = stringResource(string.ok_button),
+                enabled = hasCapability(DeviceControllerButton.OK),
+                modifier = Modifier
+                    .weight(1F)
+                    .aspectRatio(ratio),
+            ) {
+                executeButton(DeviceControllerButton.OK)
+            }
+            CTextButton(
+                text = "0",
+                fontSize = 6.em,
+                enabled = hasCapability(DeviceControllerButton.NUM_0),
+                modifier = Modifier
+                    .weight(1F)
+                    .aspectRatio(ratio),
+            ) {
+                executeButton(DeviceControllerButton.NUM_0)
+            }
+
+            CIconButton(
+                iconId = R.drawable.ic_dpad,
+                contentDescription = "Arrow buttons",
+                modifier = Modifier
+                    .weight(1F)
+                    .aspectRatio(ratio),
+                onClick = showDirections,
+            )
+
+        }
+    }
+}

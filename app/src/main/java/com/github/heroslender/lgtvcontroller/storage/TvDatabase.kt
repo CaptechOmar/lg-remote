@@ -10,12 +10,41 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.github.heroslender.lgtvcontroller.storage.entity.TvEntity
 
 @TypeConverters(value = [RoomTypeConverters::class])
-@Database(entities = [TvEntity::class], version = 7, exportSchema = false)
+@Database(entities = [TvEntity::class], version = 11, exportSchema = false)
 abstract class TvDatabase: RoomDatabase() {
 
     companion object {
         @Volatile
         private var Instance: TvDatabase? = null
+
+        /** Adds the key the TV gave us when pairing. */
+        /** Adds the option to show brightness buttons instead of the channel buttons. */
+        /** Adds the option to replace the Exit button with a number pad button. */
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tvs ADD COLUMN numberPad INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tvs ADD COLUMN brightnessControls INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tvs ADD COLUMN clientKey TEXT")
+            }
+        }
+
+        /** Adds the TV's last known address and UUID, used to connect without discovery. */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tvs ADD COLUMN ipAddress TEXT")
+                db.execSQL("ALTER TABLE tvs ADD COLUMN serviceUuid TEXT")
+            }
+        }
 
         /** Adds the action of a long press on the OK button. */
         private val MIGRATION_6_7 = object : Migration(6, 7) {
@@ -41,7 +70,7 @@ abstract class TvDatabase: RoomDatabase() {
         fun getDatabase(context: Context): TvDatabase {
             return Instance ?: synchronized(this) {
                 Room.databaseBuilder(context, TvDatabase::class.java, "tv_database")
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .fallbackToDestructiveMigration(false)
                     .build()
                     .also { Instance = it }
