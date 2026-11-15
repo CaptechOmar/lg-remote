@@ -402,7 +402,7 @@ fun ColumnScope.Controls(
                 // Rounder at rest, the corners relax a little while a finger is on it
                 var touching by remember { mutableStateOf(false) }
                 val corner by animateDpAsState(
-                    targetValue = if (touching) 14.dp else 30.dp,
+                    targetValue = if (touching) 14.dp else 25.dp,
                     animationSpec = spring(dampingRatio = 0.7f, stiffness = 500f),
                     label = "touchpadCorner",
                 )
