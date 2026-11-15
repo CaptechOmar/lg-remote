@@ -4,6 +4,12 @@
 
 <h2 align="center">LG TV Controller</h2>
 
+<p align="center">
+  <a href="https://github.com/CaptechOmar/lg-remote/releases">
+    <img src=".github/assets/badge_github.png" alt="Get it on GitHub" height="80"/>
+  </a>
+</p>
+
 [![GitHub stars](https://img.shields.io/github/stars/heroslender/lg-remote.svg)](https://github.com/heroslender/lg-remote/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues-raw/heroslender/lg-remote.svg?label=issues)](https://github.com/heroslender/lg-remote/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/heroslender/lg-remote)](https://github.com/heroslender/lg-remote/commit)
