@@ -304,6 +304,7 @@ fun PreferenceSheet(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1F, fill = false)
                     .clip(RoundedCornerShape(24.dp))
                     .verticalScroll(androidx.compose.foundation.rememberScrollState()),
             ) {

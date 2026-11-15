@@ -5,6 +5,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable2D
 import androidx.compose.foundation.gestures.rememberDraggable2DState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.TvOff
+import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.filled.KeyboardAlt
 import androidx.compose.material3.ElevatedCard
@@ -381,21 +384,52 @@ fun ColumnScope.Controls(
                 }
             }
 
-            ElevatedCard(
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1F)
-                    .draggable2D(
-                        state = rememberDraggable2DState { delta ->
-                            moveMouse(delta.x.toDouble(), delta.y.toDouble())
-                        },
-                    )
-                    .clickable(onClick = {
-                        // Only a real tap clicks (not moving the pointer), so only it gets a haptic
-                        Haptics.buttonDown(context)
-                        clickMouse()
-                    })
-            ) {}
+                    .weight(1F),
+            ) {
+                ElevatedCard(
+                    modifier = Modifier
+                        .weight(1F)
+                        .fillMaxHeight()
+                        .draggable2D(
+                            state = rememberDraggable2DState { delta ->
+                                moveMouse(delta.x.toDouble(), delta.y.toDouble())
+                            },
+                        )
+                        .clickable(onClick = {
+                            // Only a real tap clicks (not moving the pointer), so only it gets a haptic
+                            Haptics.buttonDown(context)
+                            clickMouse()
+                        })
+                ) {}
+
+                // A separate strip for scrolling on the TV (instead of a two-finger swipe)
+                ElevatedCard(
+                    modifier = Modifier
+                        .width(44.dp)
+                        .fillMaxHeight()
+                        .draggable2D(
+                            state = rememberDraggable2DState { delta ->
+                                // Finger up scrolls down, like a phone
+                                scroll(-delta.x * ScrollStripSensitivity, -delta.y * ScrollStripSensitivity)
+                            },
+                        )
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.UnfoldMore,
+                            contentDescription = "Scroll",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
 
             ColorButtonsRow(hasCapability, executeButton)
         } else if (numberPad && showNumbers) {
@@ -835,3 +869,6 @@ private fun NumberPad(
         }
     }
 }
+
+/** How far the TV scrolls per pixel dragged on the scroll strip. */
+private const val ScrollStripSensitivity = 0.6
