@@ -55,3 +55,8 @@ Light Theme                |  Dark Theme
 :-------------------------:|:-------------------------:
 ![Settings light theme](.github/assets/tv_settings.jpeg)  |  ![Settings dark theme](.github/assets/tv_settings_dark.jpeg)
 
+### Credits
+
+* App icon based on the [remote control icon](https://www.flaticon.com/free-icon/remote-control_18091280)
+  by [cah nggunung](https://www.flaticon.com/authors/cah-nggunung) from [Flaticon](https://www.flaticon.com/),
+  edited for this app. Icons created by cah nggunung - Flaticon.

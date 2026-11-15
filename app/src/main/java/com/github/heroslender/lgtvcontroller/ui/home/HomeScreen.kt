@@ -528,7 +528,13 @@ fun AppsCard(
                         .height(96.dp)
                         .widthIn(max = 96.dp)
                         .touchHaptics(),
-                    colors = if (appInfo.id == runningApp) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
+                    colors = if (appInfo.id == runningApp) {
+                        // Same color as the remote's buttons
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    } else ButtonDefaults.outlinedButtonColors(),
                     contentPadding = PaddingValues(6.dp),
                 ) {
                     Column(
@@ -683,7 +689,13 @@ fun InputsCard(
                 modifier = Modifier
                     .height(96.dp)
                     .touchHaptics(),
-                colors = if (appInfo.id == runningApp) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
+                colors = if (appInfo.id == runningApp) {
+                        // Same color as the remote's buttons
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    } else ButtonDefaults.outlinedButtonColors(),
                 contentPadding = PaddingValues(6.dp),
             ) {
                 Column(

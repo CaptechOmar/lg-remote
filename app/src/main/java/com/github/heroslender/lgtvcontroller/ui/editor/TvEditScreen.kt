@@ -107,6 +107,7 @@ fun TvEditPreview() {
 fun TvEditScreen(
     tvEditViewModel: TvEditViewModel = hiltViewModel(),
     navigateBack: () -> Unit,
+    navigateToAbout: () -> Unit = {},
 ) {
     val textInputState by tvEditViewModel.tvTextInputState.collectAsState()
 
@@ -128,6 +129,7 @@ fun TvEditScreen(
             soundMode = tvEditViewModel.soundMode,
             onPictureMode = tvEditViewModel::changePictureMode,
             onSoundMode = tvEditViewModel::changeSoundMode,
+            onOpenAbout = navigateToAbout,
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
         )
@@ -144,6 +146,7 @@ fun TvEditBody(
     soundMode: String? = null,
     onPictureMode: (String) -> Unit = {},
     onSoundMode: (String) -> Unit = {},
+    onOpenAbout: () -> Unit = {},
 ) {
     val tvDetails = uiState.tvDetails
     val context = LocalContext.current
@@ -288,33 +291,23 @@ fun TvEditBody(
 
         PreferenceGroup("About") {
             TextPrefence(
-                title = "Name",
+                title = "TV name",
                 value = tvDetails.tvName,
                 icon = Icons.Filled.Tv,
             )
 
             TextPrefence(
-                title = "ID",
+                title = "TV ID",
                 value = tvDetails.tvId,
                 icon = Icons.Filled.Tag,
             )
 
             PreferenceItem(
-                title = "App version",
-                subtitle = appVersion(context),
+                title = "About app",
+                subtitle = "Version, source code, credits and more",
                 icon = Icons.Filled.Info,
                 subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            PreferenceItem(
-                title = "Source code",
-                subtitle = SOURCE_CODE_URL,
-                icon = Icons.Filled.Code,
-                onClick = {
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_CODE_URL)))
-                    }
-                },
+                onClick = onOpenAbout,
             )
         }
 
@@ -334,17 +327,6 @@ fun TvEditBody(
     }
 }
 
-private const val SOURCE_CODE_URL = "https://github.com/CaptechOmar/lg-remote"
-
-@Suppress("DEPRECATION")
-private fun appVersion(context: Context): String {
-    return try {
-        val info = context.packageManager.getPackageInfo(context.packageName, 0)
-        "${info.versionName} (${info.versionCode})"
-    } catch (e: Exception) {
-        "unknown"
-    }
-}
 
 /** Picture modes of recent LG TVs (the TV doesn't list them). Pairs of (webOS value, label). */
 private val PictureModes = listOf(

@@ -23,6 +23,7 @@ import com.github.heroslender.lgtvcontroller.domain.model.Tv
 import com.github.heroslender.lgtvcontroller.ui.snackbar.Snackbar
 import com.github.heroslender.lgtvcontroller.utils.lunaRequest
 import com.github.heroslender.lgtvcontroller.utils.sendRequest
+import com.github.heroslender.lgtvcontroller.utils.WakeOnLan
 import com.github.heroslender.lgtvcontroller.utils.sendRequestAny
 import com.github.heroslender.lgtvcontroller.utils.sendSpecialKey
 import com.github.heroslender.lgtvcontroller.utils.setScreenPower
@@ -614,6 +615,7 @@ class LgDevice(
         }
 
         manager.updateTv(tv)
+        autofillMacAddress()
 
         try {
             subscribeRunningApp()
@@ -638,6 +640,38 @@ class LgDevice(
         } catch (e: Exception) {
             AppLog.e("LgDevice", "Failed to subscribe to text input: ${e.message}")
             _errors.emit(Snackbar.error("Failed to subscribe to text input", e.message))
+        }
+    }
+
+    /**
+     * Asks the tv for its own MAC address the first time, so Wake-on-LAN works without typing it.
+     * The Wi-Fi and the wired adapter both report one: the connected one wins.
+     */
+    private fun autofillMacAddress() {
+        if (!tv.macAddress.isNullOrBlank()) return
+
+        service.sendRequestAny(
+            listOf("ssap://com.webos.service.connectionmanager/getinfo"),
+            JSONObject(),
+        ) { error, response ->
+            val payload = response as? JSONObject
+            if (error != null || payload == null) {
+                AppLog.w("LgDevice", "Couldn't read the MAC address: ${error?.message ?: response}")
+            } else {
+                val found = listOf("wifiInfo", "wiredInfo").mapNotNull { key ->
+                    val info = payload.optJSONObject(key) ?: return@mapNotNull null
+                    val mac = info.optString("macAddress").takeIf { it.isNotBlank() }
+                        ?.let { WakeOnLan.normalizeMac(it) }
+                        ?: return@mapNotNull null
+                    mac to info.optString("state").equals("connected", ignoreCase = true)
+                }
+                val mac = (found.firstOrNull { it.second } ?: found.firstOrNull())?.first
+                if (mac != null && tv.macAddress.isNullOrBlank()) {
+                    AppLog.d("LgDevice", "Filled in the MAC address from the tv: $mac")
+                    tv.macAddress = mac
+                    manager.updateTv(tv)
+                }
+            }
         }
     }
 

@@ -279,9 +279,13 @@ fun ColumnScope.Controls(
 ) {
     val context = LocalContext.current
     var showNumbers by remember { mutableStateOf(false) }
+    // The colored buttons are pinned to the bottom, so they stay in the same place whichever
+    // layout (normal, touchpad, numbers) is showing above them
+    Column(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .weight(1F)
             .then(if (trackpadEnabled) Modifier else Modifier.verticalScroll(rememberScrollState()))
     ) {
         Row(
@@ -449,15 +453,12 @@ fun ColumnScope.Controls(
                         .fillMaxHeight(),
                 )
             }
-
-            ColorButtonsRow(hasCapability, executeButton)
         } else if (numberPad && showNumbers) {
             NumberPad(
                 hasCapability = hasCapability,
                 executeButton = executeButton,
                 showDirections = { showNumbers = false },
             )
-            ColorButtonsRow(hasCapability, executeButton)
         } else {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
@@ -612,8 +613,9 @@ fun ColumnScope.Controls(
                     }
                 }
             }
-            ColorButtonsRow(hasCapability, executeButton)
         }
+    }
+    ColorButtonsRow(hasCapability, executeButton)
     }
 }
 
@@ -856,15 +858,15 @@ private fun NumberPad(
             horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            CIconButton(
-                iconId = R.drawable.ic_dpad,
-                contentDescription = "Arrow buttons",
+            CTextButton(
+                text = stringResource(string.ok_button),
+                enabled = hasCapability(DeviceControllerButton.OK),
                 modifier = Modifier
                     .weight(1F)
                     .aspectRatio(ratio),
-                onClick = showDirections,
-            )
-
+            ) {
+                executeButton(DeviceControllerButton.OK)
+            }
             CTextButton(
                 text = "0",
                 fontSize = 6.em,
@@ -876,15 +878,15 @@ private fun NumberPad(
                 executeButton(DeviceControllerButton.NUM_0)
             }
 
-            CTextButton(
-                text = stringResource(string.ok_button),
-                enabled = hasCapability(DeviceControllerButton.OK),
+            CIconButton(
+                iconId = R.drawable.ic_dpad,
+                contentDescription = "Arrow buttons",
                 modifier = Modifier
                     .weight(1F)
                     .aspectRatio(ratio),
-            ) {
-                executeButton(DeviceControllerButton.OK)
-            }
+                onClick = showDirections,
+            )
+
         }
     }
 }

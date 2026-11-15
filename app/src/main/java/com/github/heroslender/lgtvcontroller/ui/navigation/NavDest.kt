@@ -12,6 +12,7 @@ sealed class NavDest(
     data object DeviceList : NavDest("device_list")
     data object Home : NavDest("home")
     data object Controller : NavDest("controller")
+    data object About : NavDest("about")
     data object EditDevice : NavDest("device_edit") {
         const val tvIdArg = "tvId"
         override val routeWithArgs = "$route/{$tvIdArg}"
