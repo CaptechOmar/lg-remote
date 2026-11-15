@@ -28,6 +28,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -523,7 +526,7 @@ fun AppsCard(
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .height(96.dp)
-                        .width(IntrinsicSize.Min)
+                        .widthIn(max = 96.dp)
                         .touchHaptics(),
                     colors = if (appInfo.id == runningApp) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
                     contentPadding = PaddingValues(6.dp),
@@ -542,32 +545,35 @@ fun AppsCard(
                                 .aspectRatio(1F, true)
                                 .clip(RoundedCornerShape(8.dp)),
                             loading = placeholder {
-                                CircularProgressIndicator(
-                                    color = if (appInfo.id == runningApp) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .padding(8.dp)
-                                        .weight(1F)
-                                        .aspectRatio(1F, true)
-                                )
-                            },
+                            // Static on purpose: a spinner per icon animates constantly and slows the screen down
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp)
+                                    .background(
+                                        LocalContentColor.current.copy(alpha = 0.12f),
+                                        RoundedCornerShape(8.dp),
+                                    )
+                            )
+                        },
                             failure = placeholder {
-                                CircularProgressIndicator(
-                                    color = if (appInfo.id == runningApp) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .padding(8.dp)
-                                        .weight(1F)
-                                        .aspectRatio(1F, true)
-                                )
-                            }
+                            // Static on purpose: a spinner per icon animates constantly and slows the screen down
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp)
+                                    .background(
+                                        LocalContentColor.current.copy(alpha = 0.12f),
+                                        RoundedCornerShape(8.dp),
+                                    )
+                            )
+                        }
                         )
 
                         Text(
                             text = appInfo.name,
                             modifier = Modifier,
-                            autoSize = TextAutoSize.StepBased(
-                                minFontSize = LocalTextStyle.current.fontSize * .8,
-                                maxFontSize = LocalTextStyle.current.fontSize
-                            ),
+                            fontSize = 12.sp,
                             overflow = TextOverflow.Ellipsis,
                             maxLines = 1
                         )
@@ -662,10 +668,8 @@ fun InputsCard(
                     )
                     Text(
                         text = stringResource(string.input_picker_button),
-                        autoSize = TextAutoSize.StepBased(
-                            minFontSize = 8.sp,
-                            maxFontSize = LocalTextStyle.current.fontSize
-                        ),
+                        fontSize = 12.sp,
+                            overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
                     )
                 }
@@ -695,21 +699,27 @@ fun InputsCard(
                             .aspectRatio(1F, true),
                         colorFilter = ColorFilter.tint(LocalContentColor.current),
                         loading = placeholder {
-                            CircularProgressIndicator(
-                                color = if (appInfo.id == runningApp) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
+                            // Static on purpose: a spinner per icon animates constantly and slows the screen down
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
                                     .padding(8.dp)
-                                    .weight(1F)
-                                    .aspectRatio(1F, true)
+                                    .background(
+                                        LocalContentColor.current.copy(alpha = 0.12f),
+                                        RoundedCornerShape(8.dp),
+                                    )
                             )
                         },
                         failure = placeholder {
-                            CircularProgressIndicator(
-                                color = if (appInfo.id == runningApp) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
+                            // Static on purpose: a spinner per icon animates constantly and slows the screen down
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
                                     .padding(8.dp)
-                                    .weight(1F)
-                                    .aspectRatio(1F, true)
+                                    .background(
+                                        LocalContentColor.current.copy(alpha = 0.12f),
+                                        RoundedCornerShape(8.dp),
+                                    )
                             )
                         }
                     )
@@ -725,10 +735,8 @@ fun InputsCard(
                             append(appInfo.name)
                         },
                         modifier = Modifier,
-                        autoSize = TextAutoSize.StepBased(
-                            minFontSize = 8.sp,
-                            maxFontSize = LocalTextStyle.current.fontSize
-                        ),
+                        fontSize = 12.sp,
+                            overflow = TextOverflow.Ellipsis,
                         maxLines = 1
                     )
                 }
