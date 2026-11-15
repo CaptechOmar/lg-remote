@@ -77,6 +77,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = if (ciKeystore != null) {
+                signingConfigs.getByName("ci")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
     compileOptions {

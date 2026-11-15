@@ -5,7 +5,7 @@
 <h2 align="center">LG TV Controller</h2>
 
 <p align="center">
-  <a href="https://github.com/CaptechOmar/lg-remote/releases">
+  <a href="https://github.com/CaptechOmar/lg-remote/releases/latest/download/lg-remote.apk">
     <img src=".github/assets/badge_github.png" alt="Get it on GitHub" height="80"/>
   </a>
 </p>
