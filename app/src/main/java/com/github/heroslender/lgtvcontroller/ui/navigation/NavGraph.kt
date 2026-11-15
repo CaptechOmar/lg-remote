@@ -7,8 +7,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,13 +19,15 @@ import com.github.heroslender.lgtvcontroller.ui.devicelist.DeviceListScreen
 import com.github.heroslender.lgtvcontroller.ui.editor.TvEditScreen
 import com.github.heroslender.lgtvcontroller.ui.home.HomeScreen
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+// The Material 3 Expressive "default spatial" spring (what Expressive Voice uses)
+private val SLIDE_SPRING = spring<IntOffset>(dampingRatio = 0.8f, stiffness = 380f)
+private val SCALE_SPRING = spring<Float>(dampingRatio = 0.8f, stiffness = 380f)
+
 @Composable
 fun ControllerNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
 ) {
-    val motion = MaterialTheme.motionScheme
     NavHost(
         navController = navController,
         startDestination = NavDest.Home.route,
@@ -35,12 +37,12 @@ fun ControllerNavHost(
         // Same as Expressive Voice: full-width slides on the Material motion spring, which
         // follows the predictive back gesture right from the first pixel. The leaving screen also
         // shrinks a little.
-        enterTransition = { slideInHorizontally(motion.defaultSpatialSpec(), initialOffsetX = { it }) + fadeIn() },
-        exitTransition = { slideOutHorizontally(motion.defaultSpatialSpec(), targetOffsetX = { -it }) + fadeOut() },
-        popEnterTransition = { slideInHorizontally(motion.defaultSpatialSpec(), initialOffsetX = { -it }) + fadeIn() },
+        enterTransition = { slideInHorizontally(SLIDE_SPRING, initialOffsetX = { it }) + fadeIn() },
+        exitTransition = { slideOutHorizontally(SLIDE_SPRING, targetOffsetX = { -it }) + fadeOut() },
+        popEnterTransition = { slideInHorizontally(SLIDE_SPRING, initialOffsetX = { -it }) + fadeIn() },
         popExitTransition = {
-            slideOutHorizontally(motion.defaultSpatialSpec(), targetOffsetX = { it }) +
-                fadeOut() + scaleOut(motion.defaultSpatialSpec(), targetScale = 0.9f)
+            slideOutHorizontally(SLIDE_SPRING, targetOffsetX = { it }) +
+                fadeOut() + scaleOut(SCALE_SPRING, targetScale = 0.9f)
         },
     ) {
         composable(NavDest.DeviceList.route) {
