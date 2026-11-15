@@ -1,6 +1,7 @@
 package com.github.heroslender.lgtvcontroller.ui.navigation
 
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
@@ -26,12 +27,13 @@ fun ControllerNavHost(
         modifier = modifier,
         // Forward: the new screen slides in; back (also the predictive back gesture): the
         // current one slides away shrinking while the previous one comes back
-        // Exactly WikiReader's setup (default specs, no fade on the leaving screen), whose back
-        // gesture from settings is instant
+        // WikiReader's setup (default specs) plus a slight shrink of the leaving screen
         enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
         exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 4 }) },
         popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn() },
-        popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { it }) + scaleOut(targetScale = 0.9f)
+        },
     ) {
         composable(NavDest.DeviceList.route) {
             DeviceListScreen(
