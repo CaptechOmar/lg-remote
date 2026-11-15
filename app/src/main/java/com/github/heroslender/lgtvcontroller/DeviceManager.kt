@@ -555,7 +555,9 @@ class DeviceManager(
                         if (tv.id == lastTvId()
                             && desiredTvId == null
                             && userStoppedTvId != tv.id
-                            && _connectedDevice.value == null
+                            && _connectedDevice.value?.state?.value?.status.let {
+                                it == null || it == DeviceStatus.DISCONNECTED
+                            }
                             && reconnectJob?.isActive != true
                             && System.currentTimeMillis() - lastGiveUpMs > REGAIN_AFTER_GIVE_UP_MS
                         ) {

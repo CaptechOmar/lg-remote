@@ -38,11 +38,13 @@ fun ControllerNavHost(
         // Forward: the new screen slides in; back (also the predictive back gesture): the
         // current one slides away shrinking while the previous one comes back
         enterTransition = { slideInHorizontally(NavSlide, initialOffsetX = { it / 4 }) + fadeIn(NavFade) },
-        exitTransition = { slideOutHorizontally(NavSlide, targetOffsetX = { -it / 4 }) + fadeOut(NavFade) },
-        popEnterTransition = { slideInHorizontally(NavSlide, initialOffsetX = { -it / 4 }) + fadeIn(NavFade) },
+        exitTransition = { slideOutHorizontally(NavSlide, targetOffsetX = { -it / 5 }) },
+        // Back: the previous screen is fully visible underneath from the first moment and the
+        // leaving one follows the gesture over the whole width, so the first pixels already move
+        popEnterTransition = { slideInHorizontally(NavSlide, initialOffsetX = { -it / 5 }) },
         popExitTransition = {
-            slideOutHorizontally(NavSlide, targetOffsetX = { it / 4 }) +
-                fadeOut(NavFade) + scaleOut(NavScale, targetScale = 0.9f)
+            slideOutHorizontally(NavSlide, targetOffsetX = { it }) +
+                scaleOut(NavScale, targetScale = 0.85f)
         },
     ) {
         composable(NavDest.DeviceList.route) {
