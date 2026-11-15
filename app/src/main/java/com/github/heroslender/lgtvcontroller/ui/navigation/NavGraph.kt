@@ -1,16 +1,10 @@
 package com.github.heroslender.lgtvcontroller.ui.navigation
 
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -20,13 +14,6 @@ import com.github.heroslender.lgtvcontroller.ui.controller.ControllerScreen
 import com.github.heroslender.lgtvcontroller.ui.devicelist.DeviceListScreen
 import com.github.heroslender.lgtvcontroller.ui.editor.TvEditScreen
 import com.github.heroslender.lgtvcontroller.ui.home.HomeScreen
-
-// The Material 3 Expressive "default spatial" spring (what Expressive Voice uses)
-private val SLIDE_SPRING = spring<IntOffset>(dampingRatio = 0.8f, stiffness = 380f)
-private val SCALE_SPRING = spring<Float>(dampingRatio = 0.8f, stiffness = 380f)
-
-private val FORWARD_SLIDE = tween<IntOffset>(260, easing = FastOutSlowInEasing)
-private val FORWARD_FADE = tween<Float>(260, easing = FastOutSlowInEasing)
 
 @Composable
 fun ControllerNavHost(
@@ -39,18 +26,12 @@ fun ControllerNavHost(
         modifier = modifier,
         // Forward: the new screen slides in; back (also the predictive back gesture): the
         // current one slides away shrinking while the previous one comes back
-        // Same as Expressive Voice: full-width slides on the Material motion spring, which
-        // follows the predictive back gesture right from the first pixel. The leaving screen also
-        // shrinks a little.
-        // Going forward uses short tweens: a spring keeps "running" for a long tail, and a back
-        // gesture started during that tail only starts animating once it's over
-        enterTransition = { slideInHorizontally(FORWARD_SLIDE, initialOffsetX = { it }) + fadeIn(FORWARD_FADE) },
-        exitTransition = { slideOutHorizontally(FORWARD_SLIDE, targetOffsetX = { -it }) + fadeOut(FORWARD_FADE) },
-        popEnterTransition = { slideInHorizontally(SLIDE_SPRING, initialOffsetX = { -it }) + fadeIn() },
-        popExitTransition = {
-            slideOutHorizontally(SLIDE_SPRING, targetOffsetX = { it }) +
-                fadeOut() + scaleOut(SCALE_SPRING, targetScale = 0.9f)
-        },
+        // Exactly WikiReader's setup (default specs, no fade on the leaving screen), whose back
+        // gesture from settings is instant
+        enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 4 }) },
+        popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn() },
+        popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) },
     ) {
         composable(NavDest.DeviceList.route) {
             DeviceListScreen(
