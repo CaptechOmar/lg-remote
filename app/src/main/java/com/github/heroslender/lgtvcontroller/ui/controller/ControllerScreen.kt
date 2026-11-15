@@ -27,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.TvOff
-import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.filled.KeyboardAlt
 import androidx.compose.material3.ElevatedCard
@@ -406,29 +405,13 @@ fun ColumnScope.Controls(
                         })
                 ) {}
 
-                // A separate strip for scrolling on the TV (instead of a two-finger swipe)
-                ElevatedCard(
+                // The scroll wheel of the remote, a separate strip instead of a two-finger swipe
+                ScrollWheel(
+                    onScroll = { dy -> scroll(0.0, dy) },
                     modifier = Modifier
-                        .width(44.dp)
-                        .fillMaxHeight()
-                        .draggable2D(
-                            state = rememberDraggable2DState { delta ->
-                                // Finger up scrolls down, like a phone
-                                scroll(-delta.x * ScrollStripSensitivity, -delta.y * ScrollStripSensitivity)
-                            },
-                        )
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.UnfoldMore,
-                            contentDescription = "Scroll",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                        .width(56.dp)
+                        .fillMaxHeight(),
+                )
             }
 
             ColorButtonsRow(hasCapability, executeButton)
@@ -869,6 +852,3 @@ private fun NumberPad(
         }
     }
 }
-
-/** How far the TV scrolls per pixel dragged on the scroll strip. */
-private const val ScrollStripSensitivity = 0.6
