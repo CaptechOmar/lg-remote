@@ -7,10 +7,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.Info as InfoOutlined
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Router
 import androidx.compose.material.icons.filled.SettingsEthernet
@@ -23,6 +25,14 @@ import com.github.heroslender.lgtvcontroller.ui.preferences.PreferenceItem
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import com.github.heroslender.lgtvcontroller.ui.preferences.PreferenceSheet
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
 import androidx.compose.ui.platform.LocalContext
 import com.github.heroslender.lgtvcontroller.utils.AppLog
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -137,6 +147,7 @@ fun TvEditBody(
 ) {
     val tvDetails = uiState.tvDetails
     val context = LocalContext.current
+    var showMacHelp by remember { mutableStateOf(false) }
     Column(modifier = modifier.padding(16.dp, 8.dp)) {
         PreferenceGroup("Connection") {
             SwitchPrefence(
@@ -156,11 +167,43 @@ fun TvEditBody(
                 inputValidation = uiState.macAddressValidator,
                 onValueChange = { newValue ->
                     onValueChange(tvDetails.copy(macAddress = newValue.trim()))
-                }
+                },
+                trailing = {
+                    IconButton(onClick = { showMacHelp = true }) {
+                        Icon(
+                            imageVector = Icons.Outlined.InfoOutlined,
+                            contentDescription = "How to find the MAC address",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                },
             )
 
+            if (showMacHelp) {
+                PreferenceSheet(
+                    title = "Finding the MAC address",
+                    onDismiss = { showMacHelp = false },
+                ) { close ->
+                    Text(
+                        text = "The MAC address lets the app wake the TV from standby. On the TV:\n\n" +
+                            "1. Press the Settings button and open All Settings.\n" +
+                            "2. Go to General, then Devices (or Network).\n" +
+                            "3. Open TV Management (or Network Status) and pick your connection, Wi-Fi or Ethernet.\n" +
+                            "4. Look for \"MAC address\" and type it in here, for example A8:23:FE:12:34:56.\n\n" +
+                            "Use the address of the connection the TV uses (Wi-Fi or wired). The names of the menus differ a little between webOS versions, and your router's list of connected devices shows it too.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+                    TextButton(
+                        onClick = close,
+                        modifier = Modifier.align(Alignment.End),
+                    ) { Text("Got it") }
+                }
+            }
+
             TextPrefence(
-                title = "IP address",
+                title = "TV IP address (for reliable connection)",
                 value = tvDetails.ipAddress,
                 icon = Icons.Filled.Router,
                 inputValidation = uiState.ipAddressValidator,
@@ -198,6 +241,16 @@ fun TvEditBody(
                 icon = Icons.Filled.BrightnessHigh,
                 onValueChange = { newValue ->
                     onValueChange(tvDetails.copy(brightnessControls = newValue))
+                }
+            )
+
+            SwitchPrefence(
+                title = "Number pad",
+                subtitle = "Replace the Exit button with a 123 button that opens a number pad",
+                value = tvDetails.numberPad,
+                icon = Icons.Filled.Dialpad,
+                onValueChange = { newValue ->
+                    onValueChange(tvDetails.copy(numberPad = newValue))
                 }
             )
         }

@@ -21,4 +21,5 @@ data class Tv(
     var clientKey: String? = null,
     /** Show brightness buttons instead of the channel buttons on the remote. */
     var brightnessControls: Boolean = false,
+    var numberPad: Boolean = false,
 )

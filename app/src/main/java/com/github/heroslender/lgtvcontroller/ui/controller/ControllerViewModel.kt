@@ -27,6 +27,7 @@ class ControllerViewModel @Inject constructor(
                     deviceName = if (deviceState.displayName.isNullOrEmpty()) device.friendlyName else deviceState.displayName,
                     deviceStatus = deviceState.status,
                     brightnessControls = deviceState.brightnessControls,
+                    numberPad = deviceState.numberPad,
                     volume = deviceState.volume,
                     brightness = deviceState.brightness,
                     clickMouse = device::mouseClick,

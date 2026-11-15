@@ -989,6 +989,7 @@ class DeviceManager(
             it.tv.okLongPressAction = tv.okLongPressAction
             it.tv.ipAddress = tv.ipAddress
             it.tv.brightnessControls = tv.brightnessControls
+            it.tv.numberPad = tv.numberPad
             it.tv.serviceUuid = tv.serviceUuid
         }
 
@@ -1020,12 +1021,14 @@ class DeviceManager(
                         && reconnectJob?.isActive == true
                     -> AppLog.d("Device_Manager", "Resuming app. Already connecting to the device.")
 
-                device != null && device.id == id && status == DeviceStatus.CONNECTED
-                        && pausedFor < QUICK_RESUME_MS -> {
-                    // Only left the app briefly, the connection is most likely still fine
+                device != null && device.id == id && status == DeviceStatus.CONNECTED -> {
+                    // However long we were away, one request on the command socket tells whether
+                    // the connection survived. If it did the remote is ready immediately (the
+                    // status stays "connected" meanwhile); only a dead one is replaced.
                     if (!device.isResponsive(RESUME_PROBE_TIMEOUT_MS)) {
                         dropDeadConnection(device)
-                    } else {
+                    } else if (pausedFor >= QUICK_RESUME_MS || !device.service.hasMouseSocket()) {
+                        // The pointer socket dies silently while the phone sleeps
                         ensureMouse(device)
                     }
                 }
@@ -1070,7 +1073,7 @@ class DeviceManager(
         const val HEARTBEAT_INTERVAL_MS = 8_000L
         const val HEARTBEAT_TIMEOUT_MS = 4_000L
         const val HEARTBEAT_MAX_MISSES = 2
-        const val RESUME_PROBE_TIMEOUT_MS = 2_500L
+        const val RESUME_PROBE_TIMEOUT_MS = 1_800L
         const val WAKE_CONNECT_DELAY_MS = 3000L
         const val WAKE_RESCAN_INTERVAL_MS = 5000L
         const val WAKE_RESCAN_ATTEMPTS = 12

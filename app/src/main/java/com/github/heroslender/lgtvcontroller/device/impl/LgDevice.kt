@@ -61,6 +61,7 @@ class LgDevice(
             inputs = tv.inputs,
             isKeyboardOpen = false,
             brightnessControls = tv.brightnessControls,
+            numberPad = tv.numberPad,
         )
     )
     override val state: StateFlow<DeviceState>
@@ -395,6 +396,10 @@ class LgDevice(
         service.sendSpecialKey("BLUE")
     }
 
+    override fun number(digit: Int) {
+        service.sendSpecialKey(digit.toString())
+    }
+
     override fun launchNetflix() = launchApp("netflix")
 
     override fun launchApp(appId: String) {
@@ -638,7 +643,11 @@ class LgDevice(
 
     fun updateDisplayName() {
         _state.update {
-            it.copy(displayName = tv.displayName, brightnessControls = tv.brightnessControls)
+            it.copy(
+                displayName = tv.displayName,
+                brightnessControls = tv.brightnessControls,
+                numberPad = tv.numberPad,
+            )
         }
     }
 }

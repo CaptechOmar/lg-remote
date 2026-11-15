@@ -58,6 +58,16 @@ interface Device {
             DeviceControllerButton.GREEN,
             DeviceControllerButton.YELLOW,
             DeviceControllerButton.BLUE,
+            DeviceControllerButton.NUM_0,
+            DeviceControllerButton.NUM_1,
+            DeviceControllerButton.NUM_2,
+            DeviceControllerButton.NUM_3,
+            DeviceControllerButton.NUM_4,
+            DeviceControllerButton.NUM_5,
+            DeviceControllerButton.NUM_6,
+            DeviceControllerButton.NUM_7,
+            DeviceControllerButton.NUM_8,
+            DeviceControllerButton.NUM_9,
                 -> return hasCapability(KeyControl.Any)
         }
     }
@@ -93,6 +103,16 @@ interface Device {
             DeviceControllerButton.GREEN -> green()
             DeviceControllerButton.YELLOW -> yellow()
             DeviceControllerButton.BLUE -> blue()
+            DeviceControllerButton.NUM_0 -> number(0)
+            DeviceControllerButton.NUM_1 -> number(1)
+            DeviceControllerButton.NUM_2 -> number(2)
+            DeviceControllerButton.NUM_3 -> number(3)
+            DeviceControllerButton.NUM_4 -> number(4)
+            DeviceControllerButton.NUM_5 -> number(5)
+            DeviceControllerButton.NUM_6 -> number(6)
+            DeviceControllerButton.NUM_7 -> number(7)
+            DeviceControllerButton.NUM_8 -> number(8)
+            DeviceControllerButton.NUM_9 -> number(9)
         }
     }
 
@@ -160,6 +180,9 @@ interface Device {
     fun yellow()
 
     fun blue()
+
+    /** A digit key (0-9) of the remote. */
+    fun number(digit: Int)
 
     fun launchNetflix()
 

@@ -247,6 +247,10 @@ fun SwitchPrefence(
             Switch(
                 checked = value,
                 onCheckedChange = { onValueChange(it) },
+                colors = SwitchDefaults.colors(
+                    // The default check is dark on a dark thumb in dark mode
+                    checkedIconColor = MaterialTheme.colorScheme.primary,
+                ),
                 thumbContent = {
                     Icon(
                         imageVector = if (value) Icons.Filled.Check else Icons.Filled.Close,

@@ -57,6 +57,7 @@ fun TextPrefence(
     onValueChange: ((String) -> Unit)? = null,
     inputValidation: InputValidator? = null,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    trailing: @Composable (() -> Unit)? = null,
 ) {
     var showDialog by remember { mutableStateOf(openDialog) }
     if (showDialog) {
@@ -84,6 +85,7 @@ fun TextPrefence(
             MaterialTheme.colorScheme.onSurfaceVariant
         },
         onClick = if (onValueChange != null) ({ showDialog = true }) else null,
+        trailing = trailing,
     )
 }
 

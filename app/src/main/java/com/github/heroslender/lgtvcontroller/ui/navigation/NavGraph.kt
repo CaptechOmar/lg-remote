@@ -1,5 +1,7 @@
 package com.github.heroslender.lgtvcontroller.ui.navigation
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
@@ -7,6 +9,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -16,6 +19,12 @@ import com.github.heroslender.lgtvcontroller.ui.controller.ControllerScreen
 import com.github.heroslender.lgtvcontroller.ui.devicelist.DeviceListScreen
 import com.github.heroslender.lgtvcontroller.ui.editor.TvEditScreen
 import com.github.heroslender.lgtvcontroller.ui.home.HomeScreen
+
+// Linear tweens: the predictive back gesture scrubs through these by the finger's progress, and
+// the default springs barely move at the start, which felt like the gesture wasn't registering.
+private val NavSlide = tween<IntOffset>(300, easing = LinearEasing)
+private val NavFade = tween<Float>(300, easing = LinearEasing)
+private val NavScale = tween<Float>(300, easing = LinearEasing)
 
 @Composable
 fun ControllerNavHost(
@@ -28,11 +37,12 @@ fun ControllerNavHost(
         modifier = modifier,
         // Forward: the new screen slides in; back (also the predictive back gesture): the
         // current one slides away shrinking while the previous one comes back
-        enterTransition = { slideInHorizontally(initialOffsetX = { it / 4 }) + fadeIn() },
-        exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 4 }) + fadeOut() },
-        popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn() },
+        enterTransition = { slideInHorizontally(NavSlide, initialOffsetX = { it / 4 }) + fadeIn(NavFade) },
+        exitTransition = { slideOutHorizontally(NavSlide, targetOffsetX = { -it / 4 }) + fadeOut(NavFade) },
+        popEnterTransition = { slideInHorizontally(NavSlide, initialOffsetX = { -it / 4 }) + fadeIn(NavFade) },
         popExitTransition = {
-            slideOutHorizontally(targetOffsetX = { it / 4 }) + fadeOut() + scaleOut(targetScale = 0.9f)
+            slideOutHorizontally(NavSlide, targetOffsetX = { it / 4 }) +
+                fadeOut(NavFade) + scaleOut(NavScale, targetScale = 0.9f)
         },
     ) {
         composable(NavDest.DeviceList.route) {

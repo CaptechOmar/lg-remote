@@ -159,6 +159,7 @@ fun ControllerScreen(
                 hasCapability = controllerUiState.hasCapability,
                 executeButton = controllerUiState.executeButton,
                 brightnessControls = controllerUiState.brightnessControls,
+                numberPad = controllerUiState.numberPad,
                 volume = controllerUiState.volume,
                 brightness = controllerUiState.brightness,
             )
@@ -260,10 +261,12 @@ fun ColumnScope.Controls(
     hasCapability: (DeviceControllerButton) -> Boolean,
     executeButton: (DeviceControllerButton) -> Unit,
     brightnessControls: Boolean = false,
+    numberPad: Boolean = false,
     volume: Int? = null,
     brightness: Int? = null,
 ) {
     val context = LocalContext.current
+    var showNumbers by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -394,6 +397,13 @@ fun ColumnScope.Controls(
                     })
             ) {}
 
+            ColorButtonsRow(hasCapability, executeButton)
+        } else if (numberPad && showNumbers) {
+            NumberPad(
+                hasCapability = hasCapability,
+                executeButton = executeButton,
+                showDirections = { showNumbers = false },
+            )
             ColorButtonsRow(hasCapability, executeButton)
         } else {
             Row(
@@ -526,15 +536,27 @@ fun ColumnScope.Controls(
                     executeButton(DeviceControllerButton.DOWN)
                 }
 
-                CTextButton(
-                    text = "Exit",
-                    enabled = hasCapability(DeviceControllerButton.EXIT),
-                    modifier = Modifier
-                        .aspectRatio(1F, true)
-                        .weight(1F)
-                        .padding(top = ControlsSpacing),
-                ) {
-                    executeButton(DeviceControllerButton.EXIT)
+                if (numberPad) {
+                    CTextButton(
+                        text = "123",
+                        modifier = Modifier
+                            .aspectRatio(1F, true)
+                            .weight(1F)
+                            .padding(top = ControlsSpacing),
+                    ) {
+                        showNumbers = true
+                    }
+                } else {
+                    CTextButton(
+                        text = "Exit",
+                        enabled = hasCapability(DeviceControllerButton.EXIT),
+                        modifier = Modifier
+                            .aspectRatio(1F, true)
+                            .weight(1F)
+                            .padding(top = ControlsSpacing),
+                    ) {
+                        executeButton(DeviceControllerButton.EXIT)
+                    }
                 }
             }
             ColorButtonsRow(hasCapability, executeButton)
@@ -733,6 +755,83 @@ private fun ColorButtonsRow(
                 .fillMaxHeight(),
         ) {
             executeButton(DeviceControllerButton.BLUE)
+        }
+    }
+}
+
+
+private val NumberButtons = listOf(
+    DeviceControllerButton.NUM_1, DeviceControllerButton.NUM_2, DeviceControllerButton.NUM_3,
+    DeviceControllerButton.NUM_4, DeviceControllerButton.NUM_5, DeviceControllerButton.NUM_6,
+    DeviceControllerButton.NUM_7, DeviceControllerButton.NUM_8, DeviceControllerButton.NUM_9,
+)
+
+/**
+ * The number pad that replaces the arrows and OK: 1-9, then a row with the way back to the arrows,
+ * 0 and OK.
+ */
+@Composable
+private fun NumberPad(
+    hasCapability: (DeviceControllerButton) -> Boolean,
+    executeButton: (DeviceControllerButton) -> Unit,
+    showDirections: () -> Unit,
+) {
+    // Four rows in the room three square ones take
+    val ratio = 1.33F
+    Column(verticalArrangement = Arrangement.spacedBy(ControlsSpacing)) {
+        NumberButtons.chunked(3).forEach { row ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                row.forEach { button ->
+                    CTextButton(
+                        text = button.name.removePrefix("NUM_"),
+                        fontSize = 6.em,
+                        enabled = hasCapability(button),
+                        modifier = Modifier
+                            .weight(1F)
+                            .aspectRatio(ratio),
+                    ) {
+                        executeButton(button)
+                    }
+                }
+            }
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(ControlsSpacing),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            CIconButton(
+                iconId = R.drawable.ic_dpad,
+                contentDescription = "Arrow buttons",
+                modifier = Modifier
+                    .weight(1F)
+                    .aspectRatio(ratio),
+                onClick = showDirections,
+            )
+
+            CTextButton(
+                text = "0",
+                fontSize = 6.em,
+                enabled = hasCapability(DeviceControllerButton.NUM_0),
+                modifier = Modifier
+                    .weight(1F)
+                    .aspectRatio(ratio),
+            ) {
+                executeButton(DeviceControllerButton.NUM_0)
+            }
+
+            CTextButton(
+                text = stringResource(string.ok_button),
+                enabled = hasCapability(DeviceControllerButton.OK),
+                modifier = Modifier
+                    .weight(1F)
+                    .aspectRatio(ratio),
+            ) {
+                executeButton(DeviceControllerButton.OK)
+            }
         }
     }
 }

@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.em
 import com.github.heroslender.lgtvcontroller.ui.theme.LGTVControllerTheme
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 
 val ButtonShape = ShapeDefaults.Large
 val ControlsSpacing = 10.dp
@@ -165,6 +166,7 @@ fun CButton(
     var isPressed by remember { mutableStateOf(false) }
     val currentEnabled by rememberUpdatedState(enabled)
     val currentOnClick by rememberUpdatedState(onClick)
+    val currentRepeat by rememberUpdatedState(repeatOnHold)
     // Whether the current press already fired repeats, so releasing doesn't fire one more click
     val repeated = remember { BooleanArray(1) }
     val currentOnLongClick by rememberUpdatedState(onLongClick)
@@ -174,20 +176,6 @@ fun CButton(
     val currentOnPressedChange by rememberUpdatedState(onPressedChange)
     LaunchedEffect(isPressed) {
         currentOnPressedChange?.invoke(isPressed)
-    }
-
-    if (repeatOnHold) {
-        LaunchedEffect(isPressed) {
-            if (isPressed) {
-                repeated[0] = false
-                delay(HOLD_REPEAT_DELAY_MS)
-                repeated[0] = true
-                while (true) {
-                    currentOnClick()
-                    delay(HOLD_REPEAT_INTERVAL_MS)
-                }
-            }
-        }
     }
 
     // A long press runs [onLongClick] once instead of the normal click. It shares the `repeated`
@@ -238,10 +226,25 @@ fun CButton(
                     // Felt the instant the finger touches, not after the press animation
                     Haptics.buttonDown(context)
                 }
+                repeated[0] = false
                 try {
-                    do {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                    } while (event.changes.any { it.pressed })
+                    // The hold-repeat lives inside the gesture itself, so it ends the moment the
+                    // gesture does (lift, cancel, or the screen going away) and can't get stuck.
+                    var repeating = false
+                    while (true) {
+                        val wait = if (!wasEnabled || !currentRepeat) Long.MAX_VALUE
+                        else if (repeating) HOLD_REPEAT_INTERVAL_MS else HOLD_REPEAT_DELAY_MS
+                        val event = withTimeoutOrNull(wait) {
+                            awaitPointerEvent(PointerEventPass.Initial)
+                        }
+                        if (event == null) {
+                            repeating = true
+                            repeated[0] = true
+                            currentOnClick()
+                        } else if (event.changes.none { it.pressed }) {
+                            break
+                        }
+                    }
                 } finally {
                     isPressed = false
                     if (wasEnabled) Haptics.buttonUp(context)

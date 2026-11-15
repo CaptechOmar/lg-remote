@@ -19,4 +19,5 @@ data class TvEntity(
     var serviceUuid: String? = null,
     var clientKey: String? = null,
     var brightnessControls: Boolean = false,
+    var numberPad: Boolean = false,
 )
