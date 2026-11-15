@@ -48,12 +48,18 @@ android {
         }
 
         // Same app as the stable one (same package and key), so installing it updates the app.
+        // Built like a release (optimized, not debuggable): a debug build runs Compose several
+        // times slower, which made screen transitions and the back gesture lag.
         create("beta") {
-            initWith(getByName("debug"))
+            initWith(getByName("release"))
             versionNameSuffix = "-beta"
-            if (ciKeystore != null) {
-                signingConfig = signingConfigs.getByName("ci")
+            isDebuggable = false
+            signingConfig = if (ciKeystore != null) {
+                signingConfigs.getByName("ci")
+            } else {
+                signingConfigs.getByName("debug")
             }
+            matchingFallbacks += listOf("release")
         }
 
         release {
