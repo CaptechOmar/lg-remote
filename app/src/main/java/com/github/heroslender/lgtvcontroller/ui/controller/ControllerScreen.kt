@@ -8,6 +8,16 @@ import androidx.compose.foundation.gestures.rememberDraggable2DState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.background
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -389,21 +399,47 @@ fun ColumnScope.Controls(
                     .fillMaxWidth()
                     .weight(1F),
             ) {
-                ElevatedCard(
+                // Rounder at rest, the corners relax a little while a finger is on it
+                var touching by remember { mutableStateOf(false) }
+                val corner by animateDpAsState(
+                    targetValue = if (touching) 14.dp else 30.dp,
+                    animationSpec = spring(dampingRatio = 0.7f, stiffness = 500f),
+                    label = "touchpadCorner",
+                )
+                Box(
                     modifier = Modifier
                         .weight(1F)
                         .fillMaxHeight()
+                        .clip(RoundedCornerShape(corner))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                                touching = true
+                                try {
+                                    do {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                    } while (event.changes.any { it.pressed })
+                                } finally {
+                                    touching = false
+                                }
+                            }
+                        }
                         .draggable2D(
                             state = rememberDraggable2DState { delta ->
                                 moveMouse(delta.x.toDouble(), delta.y.toDouble())
                             },
                         )
-                        .clickable(onClick = {
-                            // Only a real tap clicks (not moving the pointer), so only it gets a haptic
-                            Haptics.buttonDown(context)
-                            clickMouse()
-                        })
-                ) {}
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {
+                                // Only a real tap clicks (not moving the pointer), so only it gets a haptic
+                                Haptics.buttonDown(context)
+                                clickMouse()
+                            },
+                        )
+                )
 
                 // The scroll wheel of the remote, a separate strip instead of a two-finger swipe
                 ScrollWheel(
