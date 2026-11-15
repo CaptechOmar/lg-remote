@@ -1,6 +1,8 @@
-<img src=".github/assets/icon.png" alt="LG TV Controller" title="LG TV Controller" align="right"/>
+<p align="center">
+  <img src=".github/assets/icon.png" alt="LG TV Controller" title="LG TV Controller" width="96"/>
+</p>
 
-## LG TV Controller
+<h2 align="center">LG TV Controller</h2>
 
 [![GitHub stars](https://img.shields.io/github/stars/heroslender/lg-remote.svg)](https://github.com/heroslender/lg-remote/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues-raw/heroslender/lg-remote.svg?label=issues)](https://github.com/heroslender/lg-remote/issues)
