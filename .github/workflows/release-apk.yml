@@ -58,12 +58,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.inputs.version || github.ref_name }}
         run: |
-          cp app/build/outputs/apk/release/*.apk "lg-remote-${TAG}.apk"
-          # A second copy with a fixed name, so that
+          # One APK with a fixed name, so that
           # https://github.com/CaptechOmar/lg-remote/releases/latest/download/lg-remote.apk
           # always downloads the newest stable APK (this is what the README button links to)
-          cp "lg-remote-${TAG}.apk" lg-remote.apk
-          gh release create "$TAG" "lg-remote-${TAG}.apk" lg-remote.apk \
+          cp app/build/outputs/apk/release/*.apk lg-remote.apk
+          gh release create "$TAG" lg-remote.apk \
             --latest \
             --title "LG Remote ${TAG}" \
             --target "$GITHUB_SHA" \
