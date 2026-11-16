@@ -33,7 +33,7 @@ therefore unusable, so I decided to make an add free one that I could use withou
 | ![Device search](.github/assets/searching.jpg) | ![Device list](.github/assets/list.jpg) | ![Settings](.github/assets/settings.jpg) |
 
 ### Credits
-
+* [LGPower](https://github.com/Nicsilver/LGPower/)
 * App icon based on the [remote control icon](https://www.flaticon.com/free-icon/remote-control_18091280)
   by [cah nggunung](https://www.flaticon.com/authors/cah-nggunung) from [Flaticon](https://www.flaticon.com/),
   edited for this app. Icons created by cah nggunung - Flaticon.
