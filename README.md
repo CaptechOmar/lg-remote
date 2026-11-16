@@ -32,23 +32,9 @@ therefore unusable, so I decided to make an add free one that I could use withou
 |---|---|---|---|
 | ![Home](.github/assets/main.jpg) | ![Remote](.github/assets/remote.jpg) | ![touch pad](.github/assets/touch.jpg) | ![Numbers](.github/assets/numbers.jpg) |
 
-#### Device Home
-
-Light Theme                |  Dark Theme
-:-------------------------:|:-------------------------:
-![Home light theme](.github/assets/home.jpg)  |  ![Home dark theme](.github/assets/home_dark.jpg)
-
-#### Device Controller
-
-Light Theme                |  Dark Theme
-:-------------------------:|:-------------------------:
-![Controller light theme](.github/assets/controller.jpg)  |  ![Controller dark theme](.github/assets/controller_dark.jpg)
-
-#### Device Settings
-
-Light Theme                |  Dark Theme
-:-------------------------:|:-------------------------:
-![Settings light theme](.github/assets/tv_settings.jpeg)  |  ![Settings dark theme](.github/assets/tv_settings_dark.jpeg)
+| Settings |
+|---|
+| ![Home](.github/assets/settings.jpg) |
 
 ### Credits
 
