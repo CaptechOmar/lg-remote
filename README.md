@@ -30,7 +30,7 @@ therefore unusable, so I decided to make an add free one that I could use withou
 
 | Home | Remote | Touch Pad | Numbers |
 |---|---|---|---|
-| ![Home](.github/assets/main.jpg) | ![Remote](.github/assets/remote.jpg) ![touch pad](.github/assets/touch.jpg) | ![Device search](.github/assets/numbers..jpg)
+| ![Home](.github/assets/main.jpg) | ![Remote](.github/assets/remote.jpg) | ![touch pad](.github/assets/touch.jpg) | ![Numbers](.github/assets/numbers..jpg) |
 
 #### Device Home
 
