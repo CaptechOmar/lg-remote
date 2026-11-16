@@ -31,10 +31,11 @@ therefore unusable, so I decided to make an add free one that I could use withou
   * [Device Controller](#device-controller)
   * [Device Settings](#device-settings)
 
-### Current UI
+### Screenshots
 
-#### Device Searching
-![Device search](.github/assets/searching.jpg) ![Device list](.github/assets/list.jpg) 
+| Searching | Device List |
+|---|---|
+| ![Device search](.github/assets/searching.jpg) | ![Device list](.github/assets/list.jpg) |
 
 #### Device list
 
