@@ -34,10 +34,7 @@ therefore unusable, so I decided to make an add free one that I could use withou
 ### Current UI
 
 #### Device Searching
-
-Light Theme                |  Dark Theme
-:-------------------------:|:-------------------------:
-![Device search light theme](.github/assets/device_list.png)  |  ![Device search dark theme](.github/assets/device_list_dark.png)
+![Device search](.github/assets/searching.jpg) 
 
 #### Device list
 
