@@ -34,7 +34,7 @@ therefore unusable, so I decided to make an add free one that I could use withou
 ### Current UI
 
 #### Device Searching
-![Device search](.github/assets/searching.jpg) 
+![Device search](.github/assets/searching.jpg) ![Device list](.github/assets/list.jpg) 
 
 #### Device list
 
