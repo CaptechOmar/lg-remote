@@ -22,26 +22,15 @@ An ad free android app to control your LG television.
 I started this project because the only apps I could find to control my tv were full of ads and 
 therefore unusable, so I decided to make an add free one that I could use without stress.
 
-### Contents
-
-* [Current UI](#current-ui)
-  * [Device Searching](#device-searching)
-  * [Device list](#device-list)
-  * [Device Home](#device-home)
-  * [Device Controller](#device-controller)
-  * [Device Settings](#device-settings)
-
 ### Screenshots
 
 | Searching | Device List |
 |---|---|
 | ![Device search](.github/assets/searching.jpg) | ![Device list](.github/assets/list.jpg) |
 
-#### Device list
-
-Light Theme                |  Dark Theme
-:-------------------------:|:-------------------------:
-![Device list found light theme](.github/assets/device_list_found.png)  |  ![Device list found dark theme](.github/assets/device_list_found_dark.png)
+| Home | Remote | Touch Pad | Numbers |
+|---|---|---|---|
+| ![Home](.github/assets/main.jpg) | ![Remote](.github/assets/remote.jpg) ![touch pad](.github/assets/touch.jpg) | ![Device search](.github/assets/numbers..jpg)
 
 #### Device Home
 
