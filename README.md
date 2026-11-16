@@ -24,14 +24,13 @@ therefore unusable, so I decided to make an add free one that I could use withou
 
 ### Screenshots
 
-| Searching | Device List | Settings |
-|---|---|---|
-| ![Device search](.github/assets/searching.jpg) | ![Device list](.github/assets/list.jpg) | ![Settings](.github/assets/settings.jpg) |
-
 | Home | Remote | Touch Pad | Numbers |
 |---|---|---|---|
 | ![Home](.github/assets/main.jpg) | ![Remote](.github/assets/remote.jpg) | ![touch pad](.github/assets/touch.jpg) | ![Numbers](.github/assets/numbers.jpg) |
- 
+
+ | Searching | Device List | Settings |
+|---|---|---|
+| ![Device search](.github/assets/searching.jpg) | ![Device list](.github/assets/list.jpg) | ![Settings](.github/assets/settings.jpg) |
 
 ### Credits
 
